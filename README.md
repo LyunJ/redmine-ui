@@ -1,7 +1,7 @@
 # Redmine UI
 
-Redmine의 사용성 개선을 위한 크로스 플랫폼 데스크톱 클라이언트입니다.
-System tray에 상주하며, 글로벌 단축키(`Ctrl+Shift+R`)로 빠르게 호출할 수 있는 경량 앱입니다.
+Redmine의 사용성 개선을 위한 데스크톱 클라이언트입니다.
+System tray에 상주하는 경량 앱으로, 나에게 할당된 일감을 빠르게 확인할 수 있습니다.
 
 ## Features
 
@@ -52,8 +52,6 @@ npm run tauri dev
 # 프로덕션 빌드
 npm run tauri build
 ```
-
-> Rust 빌드 시 SSL 관련 오류가 발생하면: `export CARGO_HTTP_CHECK_REVOKE=false`
 
 ## Usage
 
