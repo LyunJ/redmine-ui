@@ -1,0 +1,68 @@
+.image-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-viewer-toolbar {
+  position: absolute;
+  top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  z-index: 1001;
+}
+
+.iv-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  border-radius: 6px;
+  transition: background-color 0.12s;
+}
+
+.iv-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.iv-close {
+  margin-left: 8px;
+}
+
+.iv-scale {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 42px;
+  text-align: center;
+  user-select: none;
+}
+
+.image-viewer-canvas {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-viewer-img {
+  max-width: 90%;
+  max-height: 85vh;
+  object-fit: contain;
+  transition: transform 0.1s ease-out;
+  user-select: none;
+  pointer-events: none;
+}

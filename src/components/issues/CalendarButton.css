@@ -1,0 +1,116 @@
+.calendar-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.calendar-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.calendar-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* QR 모달 */
+.calendar-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.calendar-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  width: 310px;
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.calendar-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.calendar-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.calendar-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  color: var(--text-tertiary);
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.calendar-modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.calendar-qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.calendar-qr-wrapper {
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.calendar-qr-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.calendar-modal-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 14px 0;
+}
+
+.calendar-ics-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.calendar-ics-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

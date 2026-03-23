@@ -1,0 +1,36 @@
+.progress-bar {
+  display: flex;
+  align-items: center;
+}
+
+.progress-blocks {
+  display: flex;
+  gap: 2px;
+}
+
+.progress-block {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.block-filled {
+  background: var(--progress-filled);
+}
+
+.block-empty {
+  background: var(--progress-empty);
+}
+
+.block-overdue {
+  background: var(--progress-overdue);
+}
+
+.block-warning {
+  background: var(--progress-warning);
+}
+
+.progress-none {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
