@@ -82,9 +82,7 @@ export const useIssueStore = create<IssueState>((set, get) => ({
     const client = useAuthStore.getState().client;
     if (!client) return;
 
-    set({ isLoading: true, error: null });
     try {
-      // status 목록 조회하여 "신규"/"진행" 상태 ID 찾기
       let { statusMap } = get();
       if (statusMap.length === 0) {
         statusMap = await client.getIssueStatuses();
@@ -108,9 +106,9 @@ export const useIssueStore = create<IssueState>((set, get) => ({
       }
 
       const issues = await client.getMyIssues(statusIds);
-      set({ issues, isLoading: false });
+      set({ issues });
     } catch {
-      set({ isLoading: false, error: "일감 조회 실패" });
+      set({ error: "일감 조회 실패" });
     }
   },
 
@@ -118,7 +116,6 @@ export const useIssueStore = create<IssueState>((set, get) => ({
     const client = useAuthStore.getState().client;
     if (!client) return;
 
-    set({ isLoading: true, error: null });
     try {
       let { statusMap } = get();
       if (statusMap.length === 0) {
@@ -139,9 +136,9 @@ export const useIssueStore = create<IssueState>((set, get) => ({
       if (statusIds.length === 0) statusIds.push(1, 2);
 
       const reportedIssues = await client.getReportedIssues(statusIds);
-      set({ reportedIssues, isLoading: false });
+      set({ reportedIssues });
     } catch {
-      set({ isLoading: false, error: "보고한 일감 조회 실패" });
+      set({ error: "보고한 일감 조회 실패" });
     }
   },
 
@@ -149,7 +146,6 @@ export const useIssueStore = create<IssueState>((set, get) => ({
     const client = useAuthStore.getState().client;
     if (!client) return;
 
-    set({ isLoading: true, error: null });
     try {
       let { statusMap } = get();
       if (statusMap.length === 0) {
@@ -162,16 +158,17 @@ export const useIssueStore = create<IssueState>((set, get) => ({
       if (statusIds.length === 0) statusIds.push(5); // fallback: 기본 Redmine "Closed" ID
 
       const completedIssues = await client.getCompletedIssues(statusIds);
-      set({ completedIssues, isLoading: false });
+      set({ completedIssues });
     } catch {
-      set({ isLoading: false, error: "완료된 일감 조회 실패" });
+      set({ error: "완료된 일감 조회 실패" });
     }
   },
 
   fetchAllViews: async () => {
+    set({ isLoading: true, error: null });
     const { fetchIssues, fetchReportedIssues, fetchCompletedIssues } = get();
     await Promise.all([fetchIssues(), fetchReportedIssues(), fetchCompletedIssues()]);
-    set({ fetchedOnce: true });
+    set({ isLoading: false, fetchedOnce: true });
   },
 
   setSortField: (field: SortField) => {

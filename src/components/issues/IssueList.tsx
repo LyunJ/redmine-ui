@@ -24,15 +24,16 @@ export function IssueList() {
 
   const isTodoView = currentView === "todo";
   const isPersonalCompletedView = currentView === "personal_completed";
+  const isRedmineView = !isTodoView && !isPersonalCompletedView;
 
-  const issues = isTodoView ? [] : getCurrentViewIssues();
+  const issues = isRedmineView ? getCurrentViewIssues() : [];
   const completedTasks = isPersonalCompletedView ? getCompletedTasks() : [];
 
   const hasContent = isPersonalCompletedView
     ? completedTasks.length > 0
     : issues.length > 0;
 
-  const showSortControls = !isPersonalCompletedView && !isTodoView;
+  const showSortControls = isRedmineView;
 
   return (
     <div className="issue-list-container">
@@ -42,6 +43,18 @@ export function IssueList() {
       <div className="issue-list-scroll">
         {isTodoView ? (
           <TodoView />
+        ) : isPersonalCompletedView ? (
+          <>
+            {!hasContent && (
+              <div className="issue-list-empty">
+                <Inbox size={32} />
+                <span>{EMPTY_MESSAGES[currentView]}</span>
+              </div>
+            )}
+            {completedTasks.map((task) => (
+              <PersonalTaskItem key={task.id} task={task} />
+            ))}
+          </>
         ) : (
           <>
             {isLoading && !hasContent && (
@@ -64,13 +77,9 @@ export function IssueList() {
               </div>
             )}
 
-            {isPersonalCompletedView
-              ? completedTasks.map((task) => (
-                  <PersonalTaskItem key={task.id} task={task} />
-                ))
-              : issues.map((issue) => (
-                  <IssueItem key={issue.id} issue={issue} />
-                ))}
+            {issues.map((issue) => (
+              <IssueItem key={issue.id} issue={issue} />
+            ))}
           </>
         )}
       </div>

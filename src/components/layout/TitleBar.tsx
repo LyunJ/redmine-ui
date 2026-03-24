@@ -3,7 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalPosition, LogicalSize } from "@tauri-apps/api/dpi";
 import { invoke } from "@tauri-apps/api/core";
 import { exit } from "@tauri-apps/plugin-process";
-import { Minus, X, Moon, Sun, LogOut, Maximize2, Minimize2 } from "lucide-react";
+import { Minus, X, Moon, Sun, LogOut, Maximize2, Minimize2, Pin, PinOff } from "lucide-react";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useAuthStore } from "../../stores/authStore";
 import "./TitleBar.css";
@@ -13,7 +13,14 @@ export function TitleBar() {
   const { isAuthenticated, currentUser, logout } = useAuthStore();
   const appWindow = getCurrentWindow();
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(true);
   const prevBounds = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+
+  const toggleAlwaysOnTop = useCallback(async () => {
+    const next = !isAlwaysOnTop;
+    await appWindow.setAlwaysOnTop(next);
+    setIsAlwaysOnTop(next);
+  }, [appWindow, isAlwaysOnTop]);
 
   useEffect(() => {
     // 초기 상태 확인
@@ -95,6 +102,13 @@ export function TitleBar() {
           title={theme === "light" ? "다크 모드" : "라이트 모드"}
         >
           {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
+        </button>
+        <button
+          className={`titlebar-btn${isAlwaysOnTop ? " titlebar-btn-active" : ""}`}
+          onClick={toggleAlwaysOnTop}
+          title={isAlwaysOnTop ? "항상 위 해제" : "항상 위 고정"}
+        >
+          {isAlwaysOnTop ? <Pin size={14} /> : <PinOff size={14} />}
         </button>
         <button
           className="titlebar-btn"
