@@ -73,7 +73,7 @@ src/
 
 ## Key Design Decisions
 
-- **Window**: decorations:false + alwaysOnTop. 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R
+- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R
 - **인증**: Redmine API Key만 사용. `tauri-plugin-store`로 앱 데이터 디렉토리에 저장
 - **"변경됨" 감지**: Redmine에 unread API가 없으므로 클라이언트에서 issue별 last_seen_updated_on을 저장/비교
 - **Status ID**: 하드코딩하지 않고 `/issue_statuses.json` 조회 후 이름("New"/"In Progress"/"신규"/"진행")으로 매핑
