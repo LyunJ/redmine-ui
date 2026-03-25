@@ -5,7 +5,7 @@ import { useTodoStore, SECTION_COLORS } from "../../stores/todoStore";
 import type { SectionSortMode } from "../../stores/todoStore";
 import { IssueItem } from "./IssueItem";
 import { PersonalTaskItem } from "./PersonalTaskItem";
-import { Inbox, X, GripVertical, ArrowUpDown } from "lucide-react";
+import { Inbox, X, GripVertical, ArrowUpDown, ChevronRight, ChevronDown } from "lucide-react";
 import type { RedmineIssue } from "../../types/redmine";
 import type { PersonalTask } from "../../types/app";
 import "./TodoView.css";
@@ -22,7 +22,7 @@ export function TodoView() {
   const issues = useIssueStore((s) => s.issues);
   const fetchedOnce = useIssueStore((s) => s.fetchedOnce);
   const tasks = usePersonalTaskStore((s) => s.tasks);
-  const { sections, sectionItems, loaded: todoLoaded, syncItems, moveItem, updateSectionColor, updateSectionName, updateSectionSort, deleteSection } =
+  const { sections, sectionItems, loaded: todoLoaded, syncItems, moveItem, updateSectionColor, updateSectionName, updateSectionSort, toggleSectionCollapse, deleteSection } =
     useTodoStore();
 
   const activeTasks = tasks.filter((t) => !t.completed);
@@ -201,8 +201,9 @@ export function TodoView() {
   }, [colorPickerSectionId]);
 
   const totalItems = issues.length + activeTasks.length;
+  const hasSections = sections.length > 1; // default 외 추가 섹션 존재
 
-  if (totalItems === 0) {
+  if (totalItems === 0 && !hasSections) {
     return (
       <div className="issue-list-empty">
         <Inbox size={32} />
@@ -253,6 +254,13 @@ export function TodoView() {
           <div key={section.id} className="todo-section">
             <div className="todo-section-header" style={{ borderLeftColor: section.color }}>
               <div className="todo-section-left">
+                <button
+                  className="todo-section-toggle"
+                  onClick={() => toggleSectionCollapse(section.id)}
+                  title={section.collapsed ? "섹션 펼치기" : "섹션 접기"}
+                >
+                  {section.collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                </button>
                 <div className="todo-color-picker-wrap" ref={colorPickerSectionId === section.id ? colorPickerRef : null}>
                   <button
                     className="todo-color-dot"
@@ -314,42 +322,44 @@ export function TodoView() {
               )}
             </div>
 
-            <div className="todo-section-body" data-section={section.id}>
-              {getDropIndicator(section.id, 0) && items.length === 0 && (
-                <div className="todo-drop-indicator" />
-              )}
-              {items.length === 0 && !isDragging && (
-                <div className="todo-section-empty">항목이 없습니다</div>
-              )}
-              {items.length === 0 && isDragging && !getDropIndicator(section.id, 0) && (
-                <div className="todo-section-drop-zone">여기에 놓기</div>
-              )}
-              {items.map((key, idx) => (
-                <div key={key}>
-                  {getDropIndicator(section.id, idx) && (
-                    <div className="todo-drop-indicator" />
-                  )}
-                  <div className="todo-item-wrap" data-section={section.id} data-index={idx}>
-                    {section.sortMode === "manual" ? (
-                      <div
-                        className="todo-drag-handle"
-                        onMouseDown={(e) => handleGripMouseDown(e, key)}
-                      >
-                        <GripVertical size={14} />
-                      </div>
-                    ) : (
-                      <div className="todo-drag-handle-spacer" />
+            {!section.collapsed && (
+              <div className="todo-section-body" data-section={section.id}>
+                {getDropIndicator(section.id, 0) && items.length === 0 && (
+                  <div className="todo-drop-indicator" />
+                )}
+                {items.length === 0 && !isDragging && (
+                  <div className="todo-section-empty">항목이 없습니다</div>
+                )}
+                {items.length === 0 && isDragging && !getDropIndicator(section.id, 0) && (
+                  <div className="todo-section-drop-zone">여기에 놓기</div>
+                )}
+                {items.map((key, idx) => (
+                  <div key={key}>
+                    {getDropIndicator(section.id, idx) && (
+                      <div className="todo-drop-indicator" />
                     )}
-                    <div className="todo-item-content">
-                      {renderItem(key)}
+                    <div className="todo-item-wrap" data-section={section.id} data-index={idx}>
+                      {section.sortMode === "manual" ? (
+                        <div
+                          className="todo-drag-handle"
+                          onMouseDown={(e) => handleGripMouseDown(e, key)}
+                        >
+                          <GripVertical size={14} />
+                        </div>
+                      ) : (
+                        <div className="todo-drag-handle-spacer" />
+                      )}
+                      <div className="todo-item-content">
+                        {renderItem(key)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {getDropIndicator(section.id, items.length) && items.length > 0 && (
-                <div className="todo-drop-indicator" />
-              )}
-            </div>
+                ))}
+                {getDropIndicator(section.id, items.length) && items.length > 0 && (
+                  <div className="todo-drop-indicator" />
+                )}
+              </div>
+            )}
           </div>
         );
       })}

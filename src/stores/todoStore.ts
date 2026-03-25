@@ -11,6 +11,7 @@ export interface TodoSection {
   name: string;
   color: string;
   sortMode: SectionSortMode;
+  collapsed: boolean;
 }
 
 export const SECTION_COLORS = [
@@ -28,6 +29,7 @@ interface TodoState {
   updateSectionColor: (id: string, color: string) => Promise<void>;
   updateSectionName: (id: string, name: string) => Promise<void>;
   updateSectionSort: (id: string, sortMode: SectionSortMode) => Promise<void>;
+  toggleSectionCollapse: (id: string) => Promise<void>;
   moveItem: (itemKey: string, toSectionId: string, toIndex: number) => Promise<void>;
   syncItems: (allItemKeys: string[]) => void;
 }
@@ -40,7 +42,7 @@ async function saveData(sections: TodoSection[], sectionItems: Record<string, st
 }
 
 export const useTodoStore = create<TodoState>((set, get) => ({
-  sections: [{ id: DEFAULT_SECTION_ID, name: "미분류", color: "#6b7280", sortMode: "manual" as SectionSortMode }],
+  sections: [{ id: DEFAULT_SECTION_ID, name: "미분류", color: "#6b7280", sortMode: "manual" as SectionSortMode, collapsed: false }],
   sectionItems: {},
   loaded: false,
 
@@ -50,7 +52,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       const sections = await store.get<TodoSection[]>("sections");
       const sectionItems = await store.get<Record<string, string[]>>("sectionItems");
       if (sections && sections.length > 0) {
-        const migrated = sections.map((s) => ({ ...s, sortMode: s.sortMode ?? "manual" as SectionSortMode }));
+        const migrated = sections.map((s) => ({ ...s, sortMode: s.sortMode ?? "manual" as SectionSortMode, collapsed: s.collapsed ?? false }));
         set({ sections: migrated, sectionItems: sectionItems ?? {}, loaded: true });
       } else {
         set({ loaded: true });
@@ -62,7 +64,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
 
   addSection: async (name: string, color: string) => {
     const id = `sec-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const section: TodoSection = { id, name, color, sortMode: "manual" };
+    const section: TodoSection = { id, name, color, sortMode: "manual", collapsed: false };
     const sections = [...get().sections, section];
     const sectionItems = { ...get().sectionItems, [id]: [] };
     set({ sections, sectionItems });
@@ -95,6 +97,12 @@ export const useTodoStore = create<TodoState>((set, get) => ({
 
   updateSectionSort: async (id: string, sortMode: SectionSortMode) => {
     const sections = get().sections.map((s) => (s.id === id ? { ...s, sortMode } : s));
+    set({ sections });
+    await saveData(sections, get().sectionItems);
+  },
+
+  toggleSectionCollapse: async (id: string) => {
+    const sections = get().sections.map((s) => (s.id === id ? { ...s, collapsed: !s.collapsed } : s));
     set({ sections });
     await saveData(sections, get().sectionItems);
   },

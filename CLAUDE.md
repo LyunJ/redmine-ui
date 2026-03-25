@@ -84,3 +84,5 @@ src/
 - **캘린더 연동**: 일감 완료예정일 기준 Google Calendar QR 코드 + ICS 파일 다운로드
 - **마크업 파싱**: Redmine Textile/HTML → React 컴포넌트 변환 (XSS 방지)
 - **데이터 저장**: `tauri-plugin-store` 사용. credentials.json(인증), last_seen.json(읽음 상태), personal_tasks.json(개인 작업), todo_sections.json(할일 보드)
+- **WebView2 Cache Busting**: `lib.rs` setup에서 `last_version` 파일과 앱 버전을 비교하여 버전 변경 시 `clear_all_browsing_data()` 호출. 버전 업데이트 시 `tauri.conf.json`과 `package.json`의 version을 반드시 함께 변경해야 함
+- **할일 보드 섹션**: 접기/펼기 지원 (collapsed 상태 영속화). 접기 버튼은 헤더 왼쪽 끝, 삭제 버튼은 오른쪽 끝에 배치하여 오클릭 방지

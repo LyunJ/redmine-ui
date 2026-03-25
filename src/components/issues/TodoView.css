@@ -26,6 +26,24 @@
   flex: 1;
 }
 
+.todo-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--text-tertiary);
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+  margin-right: -4px;
+}
+
+.todo-section-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 .todo-section-name {
   font-size: 12px;
   font-weight: 600;
