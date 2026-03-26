@@ -42,7 +42,7 @@ export CARGO_HTTP_CHECK_REVOKE=false
 src-tauri/src/
   main.rs   - Rust 진입점
   lib.rs    - Tauri 앱 설정. plugin 등록, global hotkey(Ctrl/Cmd+Shift+R) 핸들러, tray 초기화
-  tray.rs   - System tray 생성. 좌클릭으로 창 show/hide 토글, 우클릭 메뉴(열기/종료)
+  tray.rs   - System tray 생성. Windows: 좌클릭 창 토글 + 우클릭 메뉴. macOS: 좌클릭 메뉴 표시 (OS 관례)
 
 src/
   App.tsx   - 최상위 컴포넌트. 인증 분기, 상세 뷰 분기, polling 설정
@@ -89,5 +89,6 @@ src/
 - **캘린더 연동**: 일감 완료예정일 기준 Google Calendar QR 코드 + ICS 파일 다운로드
 - **마크업 파싱**: Redmine Textile/HTML → React 컴포넌트 변환 (XSS 방지)
 - **데이터 저장**: `tauri-plugin-store` 사용. credentials.json(인증), last_seen.json(읽음 상태), personal_tasks.json(개인 작업), todo_sections.json(할일 보드)
-- **WebView2 Cache Busting**: `main.rs`에서 WebView2 시작 전에 `EBWebView/` 캐시 디렉토리를 삭제. `build.rs`가 빌드마다 고유 타임스탬프를 주입하고, `last_build` 파일과 비교하여 빌드 변경 시 캐시 초기화. store 데이터(`%APPDATA%`)와 캐시(`%LOCALAPPDATA%/EBWebView`)는 별도 디렉토리이므로 데이터 손실 없음
+- **WebView2 Cache Busting (Windows only)**: `main.rs`에서 `#[cfg(target_os = "windows")]` 가드 하에 WebView2 시작 전 `EBWebView/` 캐시 디렉토리를 삭제. `build.rs`가 빌드마다 고유 타임스탬프를 주입하고, `last_build` 파일과 비교하여 빌드 변경 시 캐시 초기화. macOS는 WKWebView를 사용하므로 해당 없음
+- **크로스 플랫폼**: Windows + macOS 지원. CI에서 matrix 전략으로 양 플랫폼 동시 빌드. macOS는 universal binary(arm64 + x86_64) 생성. 플랫폼별 분기는 `main.rs`(EBWebView 캐시)와 `tray.rs`(좌클릭 동작)에만 존재
 - **할일 보드 섹션**: 접기/펼기 지원 (collapsed 상태 영속화). 접기 버튼은 헤더 왼쪽 끝, 삭제 버튼은 오른쪽 끝에 배치하여 오클릭 방지
