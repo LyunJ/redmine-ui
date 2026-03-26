@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useIssueStore } from "../../stores/issueStore";
 import { usePersonalTaskStore } from "../../stores/personalTaskStore";
 import { useTodoStore, SECTION_COLORS } from "../../stores/todoStore";
 import type { SectionSortMode } from "../../stores/todoStore";
+import { applyFilter } from "../../lib/filterUtils";
 import { IssueItem } from "./IssueItem";
 import { PersonalTaskItem } from "./PersonalTaskItem";
 import { Inbox, X, GripVertical, ArrowUpDown, ChevronRight, ChevronDown } from "lucide-react";
@@ -19,13 +20,25 @@ interface DragState {
 }
 
 export function TodoView() {
-  const issues = useIssueStore((s) => s.issues);
+  const myIssues = useIssueStore((s) => s.issues);
+  const allVisibleIssues = useIssueStore((s) => s.allVisibleIssues);
   const fetchedOnce = useIssueStore((s) => s.fetchedOnce);
+  const isUpdated = useIssueStore((s) => s.isUpdated);
   const tasks = usePersonalTaskStore((s) => s.tasks);
-  const { sections, sectionItems, loaded: todoLoaded, syncItems, moveItem, updateSectionColor, updateSectionName, updateSectionSort, toggleSectionCollapse, deleteSection } =
+  const { sections, sectionItems, loaded: todoLoaded, syncItems, moveItem, updateSectionColor, updateSectionName, updateSectionSort, toggleSectionCollapse, deleteSection, filters, activeFilterId } =
     useTodoStore();
 
-  const activeTasks = tasks.filter((t) => !t.completed);
+  // 활성 필터 조건 적용
+  // 기본 필터: assigned_to=me 일감 (issues), 커스텀 필터: 전체 가시 일감에서 조건 적용
+  const activeFilter = filters.find((f) => f.id === activeFilterId);
+  const issues = useMemo(() => {
+    if (!activeFilter || activeFilter.id === "default") return myIssues;
+    if (activeFilter.conditions.length === 0) return allVisibleIssues;
+    return applyFilter(allVisibleIssues, activeFilter.conditions);
+  }, [myIssues, allVisibleIssues, activeFilter]);
+
+  const includePersonalTasks = activeFilter?.includePersonalTasks ?? true;
+  const activeTasks = includePersonalTasks ? tasks.filter((t) => !t.completed) : [];
 
   // Item lookup maps
   const issueMap = new Map<string, RedmineIssue>(issues.map((i) => [`issue:${i.id}`, i]));
@@ -36,7 +49,7 @@ export function TodoView() {
     if (!todoLoaded || !fetchedOnce) return;
     const allKeys = [...issues.map((i) => `issue:${i.id}`), ...activeTasks.map((t) => `task:${t.id}`)];
     syncItems(allKeys);
-  }, [issues, tasks, syncItems, todoLoaded, fetchedOnce]);
+  }, [issues, tasks, syncItems, todoLoaded, fetchedOnce, activeFilterId]);
 
   // Mouse-based drag and drop
   const dragState = useRef<DragState | null>(null);
@@ -307,6 +320,16 @@ export function TodoView() {
                   </span>
                 )}
                 <span className="todo-section-count">{items.length}</span>
+                {(() => {
+                  const updatedCount = items.filter((key) => {
+                    if (!key.startsWith("issue:")) return false;
+                    const issue = issueMap.get(key);
+                    return issue && isUpdated(issue);
+                  }).length;
+                  return updatedCount > 0 ? (
+                    <span className="todo-section-updated-count">{updatedCount}</span>
+                  ) : null;
+                })()}
               </div>
               <button
                 className={`todo-section-sort ${section.sortMode !== "manual" ? "todo-section-sort-active" : ""}`}

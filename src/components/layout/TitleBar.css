@@ -57,3 +57,72 @@
   background: #eb5757;
   color: white;
 }
+
+/* Refresh & Poll interval */
+.titlebar-refresh-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.titlebar-refreshing svg {
+  animation: titlebar-spin 1s linear infinite;
+}
+
+@keyframes titlebar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.titlebar-poll-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.titlebar-poll-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: auto;
+  padding: 0 6px;
+}
+
+.titlebar-poll-label {
+  font-size: 11px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.titlebar-poll-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px var(--shadow);
+  padding: 4px;
+  z-index: 1000;
+  min-width: 80px;
+}
+
+.titlebar-poll-option {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  text-align: left;
+  transition: background-color 0.1s, color 0.1s;
+}
+
+.titlebar-poll-option:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.titlebar-poll-option-active {
+  color: var(--accent);
+  font-weight: 500;
+}

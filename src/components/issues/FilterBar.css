@@ -1,0 +1,88 @@
+.filter-bar {
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.filter-bar::-webkit-scrollbar {
+  height: 0;
+}
+
+.filter-bar-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  border-radius: 12px;
+  background: var(--bg-hover);
+  transition: background-color 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.filter-chip:hover {
+  background: var(--border);
+}
+
+.filter-chip-active {
+  background: var(--accent);
+}
+
+.filter-chip-active .filter-chip-label {
+  color: white;
+}
+
+.filter-chip-label {
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  border-radius: 12px;
+}
+
+.filter-chip-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding-right: 4px;
+}
+
+.filter-chip-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.7);
+  transition: background-color 0.1s, color 0.1s;
+}
+
+.filter-chip-action:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.filter-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  transition: background-color 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.filter-add-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

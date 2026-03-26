@@ -10,6 +10,7 @@ interface IssueState {
   issues: RedmineIssue[];
   reportedIssues: RedmineIssue[];
   completedIssues: RedmineIssue[];
+  allVisibleIssues: RedmineIssue[];
   currentView: ViewTab;
   isLoading: boolean;
   fetchedOnce: boolean;
@@ -24,6 +25,7 @@ interface IssueState {
   fetchIssues: () => Promise<void>;
   fetchReportedIssues: () => Promise<void>;
   fetchCompletedIssues: () => Promise<void>;
+  fetchAllVisibleIssues: () => Promise<void>;
   fetchAllViews: () => Promise<void>;
   selectIssue: (issueId: number) => Promise<void>;
   clearSelectedIssue: () => void;
@@ -40,6 +42,7 @@ export const useIssueStore = create<IssueState>((set, get) => ({
   issues: [],
   reportedIssues: [],
   completedIssues: [],
+  allVisibleIssues: [],
   currentView: "todo" as ViewTab,
   isLoading: false,
   fetchedOnce: false,
@@ -164,10 +167,32 @@ export const useIssueStore = create<IssueState>((set, get) => ({
     }
   },
 
+  fetchAllVisibleIssues: async () => {
+    const client = useAuthStore.getState().client;
+    if (!client) return;
+
+    try {
+      let { statusMap } = get();
+      if (statusMap.length === 0) {
+        statusMap = await client.getIssueStatuses();
+        set({ statusMap });
+      }
+
+      const openStatuses = statusMap.filter((s) => !s.is_closed);
+      const statusIds = openStatuses.map((s) => s.id);
+      if (statusIds.length === 0) statusIds.push(1, 2);
+
+      const allVisibleIssues = await client.getAllVisibleIssues(statusIds);
+      set({ allVisibleIssues });
+    } catch {
+      set({ error: "전체 일감 조회 실패" });
+    }
+  },
+
   fetchAllViews: async () => {
     set({ isLoading: true, error: null });
-    const { fetchIssues, fetchReportedIssues, fetchCompletedIssues } = get();
-    await Promise.all([fetchIssues(), fetchReportedIssues(), fetchCompletedIssues()]);
+    const { fetchIssues, fetchReportedIssues, fetchCompletedIssues, fetchAllVisibleIssues } = get();
+    await Promise.all([fetchIssues(), fetchReportedIssues(), fetchCompletedIssues(), fetchAllVisibleIssues()]);
     set({ isLoading: false, fetchedOnce: true });
   },
 

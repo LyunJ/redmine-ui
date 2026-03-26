@@ -4,6 +4,7 @@ import { IssueItem } from "./IssueItem";
 import { PersonalTaskItem } from "./PersonalTaskItem";
 import { SortControls } from "./SortControls";
 import { ViewTabs } from "./ViewTabs";
+import { FilterBar } from "./FilterBar";
 import { TodoView } from "./TodoView";
 import { AddTaskModal } from "./AddTaskModal";
 import { BottomBar } from "../layout/BottomBar";
@@ -38,6 +39,7 @@ export function IssueList() {
   return (
     <div className="issue-list-container">
       <ViewTabs />
+      {isTodoView && <FilterBar />}
       {showSortControls && <SortControls />}
 
       <div className="issue-list-scroll">
