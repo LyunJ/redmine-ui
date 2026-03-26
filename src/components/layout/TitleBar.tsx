@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalPosition, LogicalSize } from "@tauri-apps/api/dpi";
 import { invoke } from "@tauri-apps/api/core";
-import { exit } from "@tauri-apps/plugin-process";
 import { Minus, X, Moon, Sun, LogOut, Maximize2, Minimize2, Pin, PinOff, RefreshCw, ChevronDown } from "lucide-react";
 import { useSettingsStore, POLL_INTERVAL_OPTIONS } from "../../stores/settingsStore";
 import { useAuthStore } from "../../stores/authStore";
@@ -84,20 +83,13 @@ export function TitleBar() {
     }
   }, [appWindow]);
 
-  const handleDragStart = (e: React.MouseEvent) => {
-    // 버튼 클릭은 드래그로 처리하지 않음
-    if ((e.target as HTMLElement).closest(".titlebar-actions")) return;
-    e.preventDefault();
-    invoke("start_dragging");
-  };
-
   const handleDoubleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest(".titlebar-actions")) return;
     toggleMaximize();
   };
 
   return (
-    <div className="titlebar" onMouseDown={handleDragStart} onDoubleClick={handleDoubleClick}>
+    <div className="titlebar" data-tauri-drag-region onDoubleClick={handleDoubleClick}>
       <div className="titlebar-left">
         <span className="titlebar-title">Redmine UI</span>
         {isAuthenticated && currentUser && (
@@ -179,7 +171,7 @@ export function TitleBar() {
         </button>
         <button
           className="titlebar-btn titlebar-btn-close"
-          onClick={() => exit(0)}
+          onClick={() => invoke("quit_app")}
           title="종료"
         >
           <X size={14} />

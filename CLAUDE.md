@@ -11,7 +11,7 @@ Redmine의 사용성 개선을 위한 크로스 플랫폼 데스크톱 클라이
 - **Desktop Framework**: Tauri v2 (Rust backend)
 - **Frontend**: React + TypeScript + Vite
 - **State Management**: Zustand
-- **Tauri Plugins**: global-shortcut, store, http, process, window-state, opener
+- **Tauri Plugins**: global-shortcut, store, http, process, opener
 - **UI Libraries**: lucide-react (아이콘), date-fns (날짜), qrcode.react (QR 코드)
 - **UI**: CSS custom properties 기반 light/dark theme
 
@@ -74,7 +74,7 @@ src/
 
 ## Key Design Decisions
 
-- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R
+- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 `quit_app` Tauri command로 graceful exit. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R. 드래그는 `data-tauri-drag-region` attribute 사용 (macOS 호환성)
 - **인증**: Redmine API Key만 사용. `tauri-plugin-store`로 앱 데이터 디렉토리에 저장
 - **"변경됨" 감지**: Redmine에 unread API가 없으므로 클라이언트에서 issue별 last_seen_updated_on을 저장/비교
 - **Status ID**: 하드코딩하지 않고 `/issue_statuses.json` 조회 후 이름("New"/"In Progress"/"신규"/"진행")으로 매핑
