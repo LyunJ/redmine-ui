@@ -19,12 +19,18 @@ fn main() {
             if should_clear {
                 // EBWebView 캐시 디렉토리 삭제
                 let cache_dir = app_dir.join("EBWebView");
-                let _ = std::fs::remove_dir_all(&cache_dir);
-            }
+                let cleared = if cache_dir.exists() {
+                    std::fs::remove_dir_all(&cache_dir).is_ok()
+                } else {
+                    true // 캐시 디렉토리 없음 = 신규 설치, 삭제 불필요
+                };
 
-            // 빌드 ID 기록
-            let _ = std::fs::create_dir_all(&app_dir);
-            let _ = std::fs::write(&version_file, build_id);
+                // 캐시 삭제 성공 시에만 빌드 ID 기록 (실패 시 다음 실행에서 재시도)
+                if cleared {
+                    let _ = std::fs::create_dir_all(&app_dir);
+                    let _ = std::fs::write(&version_file, build_id);
+                }
+            }
         }
     }
 

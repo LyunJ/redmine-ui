@@ -23,6 +23,7 @@ export function TodoView() {
   const myIssues = useIssueStore((s) => s.issues);
   const allVisibleIssues = useIssueStore((s) => s.allVisibleIssues);
   const fetchedOnce = useIssueStore((s) => s.fetchedOnce);
+  const error = useIssueStore((s) => s.error);
   const isUpdated = useIssueStore((s) => s.isUpdated);
   const tasks = usePersonalTaskStore((s) => s.tasks);
   const { sections, sectionItems, loaded: todoLoaded, syncItems, moveItem, updateSectionColor, updateSectionName, updateSectionSort, toggleSectionCollapse, deleteSection, filters, activeFilterId } =
@@ -215,6 +216,14 @@ export function TodoView() {
 
   const totalItems = issues.length + activeTasks.length;
   const hasSections = sections.length > 1; // default 외 추가 섹션 존재
+
+  if (error) {
+    return (
+      <div className="issue-list-empty">
+        <span className="issue-list-error">{error}</span>
+      </div>
+    );
+  }
 
   if (totalItems === 0 && !hasSections) {
     return (

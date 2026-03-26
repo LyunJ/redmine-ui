@@ -92,3 +92,4 @@ src/
 - **WebView2 Cache Busting (Windows only)**: `main.rs`에서 `#[cfg(target_os = "windows")]` 가드 하에 WebView2 시작 전 `EBWebView/` 캐시 디렉토리를 삭제. `build.rs`가 빌드마다 고유 타임스탬프를 주입하고, `last_build` 파일과 비교하여 빌드 변경 시 캐시 초기화. macOS는 WKWebView를 사용하므로 해당 없음
 - **크로스 플랫폼**: Windows + macOS 지원. CI에서 matrix 전략으로 양 플랫폼 동시 빌드. macOS는 universal binary(arm64 + x86_64) 생성. 플랫폼별 분기는 `main.rs`(EBWebView 캐시)와 `tray.rs`(좌클릭 동작)에만 존재
 - **할일 보드 섹션**: 접기/펼기 지원 (collapsed 상태 영속화). 접기 버튼은 헤더 왼쪽 끝, 삭제 버튼은 오른쪽 끝에 배치하여 오클릭 방지
+- **fetchAllViews atomic set()**: `fetchAllViews`는 개별 fetch 함수를 호출하지 않고 직접 API를 호출한 뒤 단일 `set()`으로 모든 상태를 한 번에 업데이트. React 18의 zustand `set()` batching으로 인한 production 빌드 렌더링 race condition 방지. 개별 fetch 함수(`fetchIssues` 등)는 단일 뷰 새로고침용으로 유지
