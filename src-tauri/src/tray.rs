@@ -29,6 +29,11 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
+            // macOS: 좌클릭 시 메뉴만 표시, 창 토글하지 않음 (show_menu_on_left_click과 중복 방지)
+            if cfg!(target_os = "macos") {
+                return;
+            }
+
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,

@@ -66,7 +66,7 @@ interface TodoState {
   updateSectionSort: (id: string, sortMode: SectionSortMode) => Promise<void>;
   toggleSectionCollapse: (id: string) => Promise<void>;
   moveItem: (itemKey: string, toSectionId: string, toIndex: number) => Promise<void>;
-  syncItems: (allItemKeys: string[]) => void;
+  syncItems: (allItemKeys: string[]) => Promise<void>;
 }
 
 async function saveAllData(
@@ -329,7 +329,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     await saveAllData(get().filters, activeFilterId, filterSections, newFilterSectionItems);
   },
 
-  syncItems: (allItemKeys: string[]) => {
+  syncItems: async (allItemKeys: string[]) => {
     const { activeFilterId, filterSections, filterSectionItems, sections } = get();
     const currentItems = filterSectionItems[activeFilterId] ?? {};
     const allKeySet = new Set(allItemKeys);
@@ -358,7 +358,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     if (changed) {
       const newFilterSectionItems = { ...filterSectionItems, [activeFilterId]: newItems };
       set({ filterSectionItems: newFilterSectionItems, sectionItems: newItems });
-      saveAllData(get().filters, activeFilterId, filterSections, newFilterSectionItems);
+      await saveAllData(get().filters, activeFilterId, filterSections, newFilterSectionItems);
     }
   },
 }));

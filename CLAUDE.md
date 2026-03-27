@@ -88,7 +88,7 @@ src/
 - **전체 가시 일감**: `issueStore.allVisibleIssues`에 사용자가 볼 수 있는 모든 미완료 일감 저장. `fetchAllViews()`에서 함께 fetch. 필터 조건 선택지와 커스텀 필터 데이터 소스로 사용
 - **캘린더 연동**: 일감 완료예정일 기준 Google Calendar QR 코드 + ICS 파일 다운로드
 - **마크업 파싱**: Redmine Textile/HTML → React 컴포넌트 변환 (XSS 방지)
-- **데이터 저장**: `tauri-plugin-store` 사용. credentials.json(인증), last_seen.json(읽음 상태), personal_tasks.json(개인 작업), todo_sections.json(할일 보드)
+- **데이터 저장**: `tauri-plugin-store` 사용. credentials.json(인증), last_seen.json(읽음 상태), personal_tasks.json(개인 작업), todo_sections.json(할일 보드). 초기화 시 store load는 반드시 직렬화(await)하여 macOS WKWebView IPC 병목 방지
 - **WebView2 Cache Busting (Windows only)**: `main.rs`에서 `#[cfg(target_os = "windows")]` 가드 하에 WebView2 시작 전 `EBWebView/` 캐시 디렉토리를 삭제. `build.rs`가 빌드마다 고유 타임스탬프를 주입하고, `last_build` 파일과 비교하여 빌드 변경 시 캐시 초기화. macOS는 WKWebView를 사용하므로 해당 없음
 - **크로스 플랫폼**: Windows + macOS 지원. CI에서 matrix 전략으로 양 플랫폼 동시 빌드. macOS는 universal binary(arm64 + x86_64) 생성. 플랫폼별 분기는 `main.rs`(EBWebView 캐시)와 `tray.rs`(좌클릭 동작)에만 존재
 - **할일 보드 섹션**: 접기/펼기 지원 (collapsed 상태 영속화). 접기 버튼은 헤더 왼쪽 끝, 삭제 버튼은 오른쪽 끝에 배치하여 오클릭 방지
