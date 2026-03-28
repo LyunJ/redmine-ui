@@ -74,7 +74,7 @@ src/
 
 ## Key Design Decisions
 
-- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 `quit_app` Tauri command로 graceful exit. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R. 드래그는 `data-tauri-drag-region` attribute 사용 (macOS 호환성)
+- **Window**: decorations:true (네이티브 타이틀바) + alwaysOnTop(토글 가능). 창 닫기는 네이티브 X 버튼. 창 숨기기는 tray 좌클릭(macOS) 또는 Ctrl+Shift+R. TitleBar 컴포넌트는 앱 기능 버튼(새로고침, 폴링 간격, 로그아웃, 테마, 항상위)만 포함
 - **인증**: Redmine API Key만 사용. `tauri-plugin-store`로 앱 데이터 디렉토리에 저장
 - **"변경됨" 감지**: Redmine에 unread API가 없으므로 클라이언트에서 issue별 last_seen_updated_on을 저장/비교
 - **Status ID**: 하드코딩하지 않고 `/issue_statuses.json` 조회 후 이름("New"/"In Progress"/"신규"/"진행")으로 매핑
@@ -93,3 +93,17 @@ src/
 - **크로스 플랫폼**: Windows + macOS 지원. CI에서 matrix 전략으로 양 플랫폼 동시 빌드. macOS는 universal binary(arm64 + x86_64) 생성. 플랫폼별 분기는 `main.rs`(EBWebView 캐시)와 `tray.rs`(좌클릭 동작)에만 존재
 - **할일 보드 섹션**: 접기/펼기 지원 (collapsed 상태 영속화). 접기 버튼은 헤더 왼쪽 끝, 삭제 버튼은 오른쪽 끝에 배치하여 오클릭 방지
 - **fetchAllViews atomic set()**: `fetchAllViews`는 개별 fetch 함수를 호출하지 않고 직접 API를 호출한 뒤 단일 `set()`으로 모든 상태를 한 번에 업데이트. React 18의 zustand `set()` batching으로 인한 production 빌드 렌더링 race condition 방지. 개별 fetch 함수(`fetchIssues` 등)는 단일 뷰 새로고침용으로 유지
+
+## macOS 알려진 이슈 및 해결
+
+### tray-icon + activationPolicy 문제 (v0.2.0에서 해결)
+
+**증상**: 창 이동 불가, 텍스트 입력 불가, 버튼 클릭 무반응, 강제종료로만 종료 가능
+
+**원인**: Tauri v2는 `tray-icon` feature가 활성화된 경우 macOS에서 자동으로 `NSApp.activationPolicy = .accessory`를 설정한다. 이 상태에서는 앱이 백그라운드 에이전트로 동작하여 창을 `show()`해도 키보드/마우스 이벤트를 전혀 수신하지 못한다.
+
+**해결**:
+1. `src-tauri/src/lib.rs` setup에서 `app.set_activation_policy(ActivationPolicy::Regular)` 호출 → 앱을 일반 앱으로 등록 (Dock 아이콘 표시됨)
+2. `src-tauri/tauri.conf.json`에서 `decorations: true` → 네이티브 타이틀바로 창 이동 자동 해결
+
+**주의**: `app.handle().show()`나 `activateIgnoringOtherApps(true)`는 이 문제를 해결하지 못한다. `activateIgnoringOtherApps`는 macOS 14(Sonoma)부터 deprecated되어 효과 없음.

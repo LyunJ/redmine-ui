@@ -4,6 +4,8 @@ use tauri::{
     Manager, Runtime,
 };
 
+use crate::show_and_focus;
+
 pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     let show_i = MenuItem::with_id(app, "show", "열기", true, None::<&str>)?;
     let quit_i = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
@@ -22,8 +24,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
             "quit" => app.exit(0),
             "show" => {
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
+                    show_and_focus(&window);
                 }
             }
             _ => {}
@@ -45,8 +46,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
                     if window.is_visible().unwrap_or(false) {
                         let _ = window.hide();
                     } else {
-                        let _ = window.show();
-                        let _ = window.set_focus();
+                        show_and_focus(&window);
                     }
                 }
             }
