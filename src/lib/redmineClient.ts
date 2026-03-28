@@ -126,6 +126,29 @@ export class RedmineClient {
     return allIssues;
   }
 
+  async getAllVisibleIssues(openStatusIds: number[]): Promise<RedmineIssue[]> {
+    const allIssues: RedmineIssue[] = [];
+
+    for (const statusId of openStatusIds) {
+      let offset = 0;
+      const limit = 100;
+
+      while (true) {
+        const data = await this.request<IssuesResponse>("/issues.json", {
+          status_id: statusId.toString(),
+          limit: limit.toString(),
+          offset: offset.toString(),
+        });
+        allIssues.push(...data.issues);
+
+        if (offset + data.issues.length >= data.total_count) break;
+        offset += limit;
+      }
+    }
+
+    return allIssues;
+  }
+
   async getIssueDetail(issueId: number): Promise<RedmineIssueDetail> {
     const data = await this.request<IssueDetailResponse>(
       `/issues/${issueId}.json`,

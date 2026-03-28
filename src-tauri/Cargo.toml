@@ -1,6 +1,6 @@
 [package]
 name = "redmine-ui"
-version = "0.1.1"
+version = "0.2.0"
 description = "Redmine UI Desktop Client"
 authors = ["you"]
 edition = "2021"
@@ -25,7 +25,7 @@ serde_json = "1"
 tauri-plugin-store = "2"
 tauri-plugin-http = "2"
 tauri-plugin-process = "2"
-tauri-plugin-window-state = "2"
+dirs = "5"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"

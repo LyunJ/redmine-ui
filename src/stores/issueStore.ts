@@ -10,6 +10,7 @@ interface IssueState {
   issues: RedmineIssue[];
   reportedIssues: RedmineIssue[];
   completedIssues: RedmineIssue[];
+  allVisibleIssues: RedmineIssue[];
   currentView: ViewTab;
   isLoading: boolean;
   fetchedOnce: boolean;
@@ -24,6 +25,7 @@ interface IssueState {
   fetchIssues: () => Promise<void>;
   fetchReportedIssues: () => Promise<void>;
   fetchCompletedIssues: () => Promise<void>;
+  fetchAllVisibleIssues: () => Promise<void>;
   fetchAllViews: () => Promise<void>;
   selectIssue: (issueId: number) => Promise<void>;
   clearSelectedIssue: () => void;
@@ -40,6 +42,7 @@ export const useIssueStore = create<IssueState>((set, get) => ({
   issues: [],
   reportedIssues: [],
   completedIssues: [],
+  allVisibleIssues: [],
   currentView: "todo" as ViewTab,
   isLoading: false,
   fetchedOnce: false,
@@ -107,7 +110,8 @@ export const useIssueStore = create<IssueState>((set, get) => ({
 
       const issues = await client.getMyIssues(statusIds);
       set({ issues });
-    } catch {
+    } catch (e) {
+      console.error("[fetchIssues]", e);
       set({ error: "일감 조회 실패" });
     }
   },
@@ -137,7 +141,8 @@ export const useIssueStore = create<IssueState>((set, get) => ({
 
       const reportedIssues = await client.getReportedIssues(statusIds);
       set({ reportedIssues });
-    } catch {
+    } catch (e) {
+      console.error("[fetchReportedIssues]", e);
       set({ error: "보고한 일감 조회 실패" });
     }
   },
@@ -159,16 +164,71 @@ export const useIssueStore = create<IssueState>((set, get) => ({
 
       const completedIssues = await client.getCompletedIssues(statusIds);
       set({ completedIssues });
-    } catch {
+    } catch (e) {
+      console.error("[fetchCompletedIssues]", e);
       set({ error: "완료된 일감 조회 실패" });
     }
   },
 
+  fetchAllVisibleIssues: async () => {
+    const client = useAuthStore.getState().client;
+    if (!client) return;
+
+    try {
+      let { statusMap } = get();
+      if (statusMap.length === 0) {
+        statusMap = await client.getIssueStatuses();
+        set({ statusMap });
+      }
+
+      const openStatuses = statusMap.filter((s) => !s.is_closed);
+      const statusIds = openStatuses.map((s) => s.id);
+      if (statusIds.length === 0) statusIds.push(1, 2);
+
+      const allVisibleIssues = await client.getAllVisibleIssues(statusIds);
+      set({ allVisibleIssues });
+    } catch (e) {
+      console.error("[fetchAllVisibleIssues]", e);
+      set({ error: "전체 일감 조회 실패" });
+    }
+  },
+
   fetchAllViews: async () => {
+    const client = useAuthStore.getState().client;
+    if (!client) return;
+
     set({ isLoading: true, error: null });
-    const { fetchIssues, fetchReportedIssues, fetchCompletedIssues } = get();
-    await Promise.all([fetchIssues(), fetchReportedIssues(), fetchCompletedIssues()]);
-    set({ isLoading: false, fetchedOnce: true });
+
+    try {
+      let { statusMap } = get();
+      if (statusMap.length === 0) {
+        statusMap = await client.getIssueStatuses();
+      }
+
+      const activeStatuses = statusMap.filter((s) => {
+        const name = s.name.toLowerCase();
+        return name === "new" || name === "in progress" || name === "신규" || name === "진행";
+      });
+      const closedStatuses = statusMap.filter((s) => s.is_closed);
+      const openStatuses = statusMap.filter((s) => !s.is_closed);
+
+      const activeStatusIds = activeStatuses.length > 0 ? activeStatuses.map((s) => s.id) : [1, 2];
+      const closedStatusIds = closedStatuses.length > 0 ? closedStatuses.map((s) => s.id) : [5];
+      const openStatusIds = openStatuses.length > 0 ? openStatuses.map((s) => s.id) : [1, 2];
+
+      const [issues, reportedIssues, completedIssues, allVisibleIssues] = await Promise.all([
+        client.getMyIssues(activeStatusIds),
+        client.getReportedIssues(activeStatusIds),
+        client.getCompletedIssues(closedStatusIds),
+        client.getAllVisibleIssues(openStatusIds),
+      ]);
+
+      // 단일 atomic set()으로 모든 상태를 한 번에 업데이트
+      set({ issues, reportedIssues, completedIssues, allVisibleIssues, statusMap, isLoading: false, fetchedOnce: true });
+    } catch (e) {
+      console.error("[fetchAllViews]", e);
+      set({ error: "일감 조회 실패", isLoading: false });
+    }
   },
 
   setSortField: (field: SortField) => {
