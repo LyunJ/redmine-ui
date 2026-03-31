@@ -14,7 +14,8 @@ export type FilterField =
   | "due_date"
   | "created_on"
   | "updated_on"
-  | "done_ratio";
+  | "done_ratio"
+  | `cf_${number}`;
 
 export type FilterOperator = "eq" | "neq" | "gte" | "lte";
 
