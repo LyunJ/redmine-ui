@@ -3,7 +3,8 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalPosition, LogicalSize } from "@tauri-apps/api/dpi";
 import { invoke } from "@tauri-apps/api/core";
 import { exit } from "@tauri-apps/plugin-process";
-import { Minus, X, Moon, Sun, LogOut, Maximize2, Minimize2, Pin, PinOff, RefreshCw, ChevronDown } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { Minus, X, Moon, Sun, LogOut, Maximize2, Minimize2, Pin, PinOff, RefreshCw, ChevronDown, Globe } from "lucide-react";
 import { useSettingsStore, POLL_INTERVAL_OPTIONS } from "../../stores/settingsStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useIssueStore } from "../../stores/issueStore";
@@ -11,7 +12,7 @@ import "./TitleBar.css";
 
 export function TitleBar() {
   const { theme, toggleTheme, pollIntervalMs, setPollInterval } = useSettingsStore();
-  const { isAuthenticated, currentUser, logout } = useAuthStore();
+  const { isAuthenticated, currentUser, logout, baseUrl } = useAuthStore();
   const { fetchAllViews, isLoading } = useIssueStore();
   const appWindow = getCurrentWindow();
   const [isMaximized, setIsMaximized] = useState(false);
@@ -107,6 +108,13 @@ export function TitleBar() {
       <div className="titlebar-actions">
         {isAuthenticated && (
           <>
+            <button
+              className="titlebar-btn"
+              onClick={() => baseUrl && openUrl(baseUrl)}
+              title="레드마인 웹에서 열기"
+            >
+              <Globe size={14} />
+            </button>
             <button
               className={`titlebar-btn titlebar-refresh-btn ${isLoading ? "titlebar-refreshing" : ""}`}
               onClick={() => fetchAllViews()}
