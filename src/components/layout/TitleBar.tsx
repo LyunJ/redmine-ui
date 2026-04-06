@@ -1,10 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { LogicalPosition, LogicalSize } from "@tauri-apps/api/dpi";
-import { invoke } from "@tauri-apps/api/core";
-import { exit } from "@tauri-apps/plugin-process";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Minus, X, Moon, Sun, LogOut, Maximize2, Minimize2, Pin, PinOff, RefreshCw, ChevronDown, Globe } from "lucide-react";
+import { Moon, Sun, LogOut, Pin, PinOff, RefreshCw, ChevronDown, Globe } from "lucide-react";
 import { useSettingsStore, POLL_INTERVAL_OPTIONS } from "../../stores/settingsStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useIssueStore } from "../../stores/issueStore";
