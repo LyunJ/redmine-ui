@@ -16,6 +16,7 @@
 .issue-detail-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 8px 14px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -35,6 +36,22 @@
 .issue-detail-back:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.issue-detail-open-web {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border-radius: 4px;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.issue-detail-open-web:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
 }
 
 .issue-detail-scroll {

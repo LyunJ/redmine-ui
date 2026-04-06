@@ -74,7 +74,8 @@ src/
 
 ## Key Design Decisions
 
-- **Window**: decorations:true (네이티브 타이틀바) + alwaysOnTop(토글 가능). 창 닫기는 네이티브 X 버튼. 창 숨기기는 tray 좌클릭(macOS) 또는 Ctrl+Shift+R. TitleBar 컴포넌트는 앱 기능 버튼(새로고침, 폴링 간격, 로그아웃, 테마, 항상위)만 포함
+- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R. TitleBar는 커스텀 드래그 영역 + 앱 기능 버튼(레드마인 웹 열기, 새로고침, 폴링 간격, 로그아웃, 테마, 항상위, 최소화, 최대화, 종료) 포함
+- **외부 링크**: `tauri-plugin-opener`의 `openUrl()`으로 시스템 기본 브라우저 열기. TitleBar에 레드마인 홈 버튼(Globe), IssueDetail 헤더에 해당 일감 웹 URL 버튼(ExternalLink)
 - **인증**: Redmine API Key만 사용. `tauri-plugin-store`로 앱 데이터 디렉토리에 저장
 - **"변경됨" 감지**: Redmine에 unread API가 없으므로 클라이언트에서 issue별 last_seen_updated_on을 저장/비교
 - **Status ID**: 하드코딩하지 않고 `/issue_statuses.json` 조회 후 이름("New"/"In Progress"/"신규"/"진행")으로 매핑

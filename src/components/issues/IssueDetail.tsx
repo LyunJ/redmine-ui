@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useIssueStore } from "../../stores/issueStore";
 import { useAuthStore } from "../../stores/authStore";
 import { PriorityBadge } from "./PriorityBadge";
 import { ProgressBar } from "./ProgressBar";
 import { CalendarButton } from "./CalendarButton";
 import { ImageViewer } from "../common/ImageViewer";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { formatDate } from "../../lib/dateUtils";
 import { parseRedmineMarkup } from "../../lib/markupParser";
 import "./IssueDetail.css";
@@ -37,6 +38,7 @@ export function IssueDetail() {
   const isLoadingDetail = useIssueStore((s) => s.isLoadingDetail);
   const clearSelectedIssue = useIssueStore((s) => s.clearSelectedIssue);
   const client = useAuthStore((s) => s.client);
+  const baseUrl = useAuthStore((s) => s.baseUrl);
   const [viewerSrc, setViewerSrc] = useState<string | null>(null);
   const [imageMap, setImageMap] = useState<Record<string, string>>({});
   const blobUrlsRef = useRef<string[]>([]);
@@ -134,6 +136,16 @@ export function IssueDetail() {
           <ArrowLeft size={16} />
           <span>목록</span>
         </button>
+        {baseUrl && (
+          <button
+            className="issue-detail-open-web"
+            onClick={() => openUrl(`${baseUrl}/issues/${selectedIssue.id}`)}
+            title="웹에서 열기"
+          >
+            <ExternalLink size={13} />
+            <span>웹에서 열기</span>
+          </button>
+        )}
       </div>
 
       <div className="issue-detail-scroll" onClick={handleImageClick}>
