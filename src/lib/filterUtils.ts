@@ -28,6 +28,13 @@ function getFieldValue(issue: RedmineIssue, field: FilterCondition["field"]): st
       return issue.updated_on.slice(0, 10);
     case "done_ratio":
       return String(issue.done_ratio);
+    default: {
+      // cf_${number} 커스텀 필드
+      const cfId = Number(field.slice(3));
+      const cf = issue.custom_fields?.find((c) => c.id === cfId);
+      if (!cf || cf.value === null) return "";
+      return Array.isArray(cf.value) ? cf.value.join(",") : cf.value;
+    }
   }
 }
 

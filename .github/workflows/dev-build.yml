@@ -1,9 +1,9 @@
-name: Release
+name: Dev Build
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - dev
 
 jobs:
   build:
@@ -17,8 +17,6 @@ jobs:
             args: "--target universal-apple-darwin"
 
     runs-on: ${{ matrix.platform }}
-    permissions:
-      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -44,23 +42,24 @@ jobs:
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Redmine UI ${{ github.ref_name }}"
-          releaseBody: |
-            ## 변경사항
-
-            ### 새 기능
-            - **레드마인 웹 열기**: TitleBar에 레드마인 홈 버튼(Globe 아이콘) 추가. 일감 상세 화면에 해당 일감 URL 버튼(ExternalLink 아이콘) 추가. 시스템 기본 브라우저로 열림
-
-            ### 버그 수정
-            - **Windows MSI 로케일 변경**: 설치 프로그램 언어를 en-US에서 ko-KR로 변경
-
-            ---
-
-            아래 Assets에서 설치 파일을 다운로드하세요.
-          releaseDraft: false
-          prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Upload artifacts (Windows)
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+          retention-days: 7
+
+      - name: Upload artifacts (macOS)
+        if: matrix.platform == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: |
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 7

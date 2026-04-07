@@ -1,11 +1,127 @@
-import { useState, useMemo } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Plus, Trash2, ChevronDown } from "lucide-react";
 import { useIssueStore } from "../../stores/issueStore";
 import { useTodoStore } from "../../stores/todoStore";
 import { applyFilter } from "../../lib/filterUtils";
 import type { CustomFilter, FilterCondition, FilterField, FilterOperator } from "../../types/app";
-import type { RedmineNamedId } from "../../types/redmine";
 import "./FilterEditor.css";
+
+interface SearchableSelectOption {
+  value: string;
+  label: string;
+}
+
+interface SearchableSelectProps {
+  options: SearchableSelectOption[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}
+
+function SearchableSelect({ options, value, onChange, placeholder = "선택" }: SearchableSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+    const handleScroll = (e: Event) => {
+      if (containerRef.current && containerRef.current.contains(e.target as Node)) return;
+      setOpen(false);
+      setQuery("");
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [open]);
+
+  const handleToggle = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 2,
+        left: rect.left,
+        width: Math.max(rect.width, 160),
+        zIndex: 3000,
+      });
+    }
+    setOpen((v) => !v);
+    setQuery("");
+  };
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+    setOpen(false);
+    setQuery("");
+  };
+
+  const filtered = query
+    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <div className="filter-searchable-select" ref={containerRef}>
+      <button
+        type="button"
+        ref={triggerRef}
+        className={`filter-searchable-trigger${open ? " open" : ""}`}
+        onClick={handleToggle}
+      >
+        <span className="filter-searchable-trigger-text">
+          {selected ? selected.label : <span className="filter-searchable-placeholder">{placeholder}</span>}
+        </span>
+        <ChevronDown size={10} />
+      </button>
+
+      {open && (
+        <div className="filter-searchable-dropdown" style={dropdownStyle}>
+          <input
+            type="text"
+            className="filter-searchable-search"
+            placeholder="검색..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+          />
+          <div className="filter-searchable-list">
+            <div
+              className={`filter-searchable-item${value === "" ? " selected" : ""}`}
+              onMouseDown={() => handleSelect("")}
+            >
+              {placeholder}
+            </div>
+            {filtered.map((opt) => (
+              <div
+                key={opt.value}
+                className={`filter-searchable-item${opt.value === value ? " selected" : ""}`}
+                onMouseDown={() => handleSelect(opt.value)}
+              >
+                {opt.label}
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="filter-searchable-empty">검색 결과 없음</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const FIELD_OPTIONS: { value: FilterField; label: string }[] = [
   { value: "status", label: "상태" },
@@ -41,6 +157,7 @@ function getOperatorLabel(op: FilterOperator, field: FilterField): string {
 
 function getOperatorsForField(field: FilterField): FilterOperator[] {
   if (NAMED_ID_FIELDS.includes(field)) return ["eq", "neq"];
+  if (field.startsWith("cf_")) return ["eq", "neq", "gte", "lte"];
   return ["eq", "neq", "gte", "lte"];
 }
 
@@ -57,12 +174,12 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
   const [conditions, setConditions] = useState<FilterCondition[]>(filter?.conditions ?? []);
   const [includePersonalTasks, setIncludePersonalTasks] = useState(filter?.includePersonalTasks ?? true);
 
-  // 전체 가시 일감에서 고유 값 추출
+  // 전체 가시 일감에서 표준 필드 고유 값 추출
   const fieldOptions = useMemo(() => {
-    const extract = (field: FilterField): RedmineNamedId[] => {
+    const extract = (field: FilterField): SearchableSelectOption[] => {
       const map = new Map<number, string>();
       for (const issue of allVisibleIssues) {
-        let val: RedmineNamedId | undefined;
+        let val: { id: number; name: string } | undefined;
         switch (field) {
           case "status": val = issue.status; break;
           case "priority": val = issue.priority; break;
@@ -74,15 +191,61 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
           map.set(val.id, val.name);
         }
       }
-      return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+      return Array.from(map.entries()).map(([id, name]) => ({ value: String(id), label: name }));
     };
 
-    const result: Record<string, RedmineNamedId[]> = {};
+    const result: Record<string, SearchableSelectOption[]> = {};
     for (const field of NAMED_ID_FIELDS) {
       result[field] = extract(field);
     }
+
     return result;
   }, [allVisibleIssues]);
+
+  // allVisibleIssues에서 userId → 이름 맵 구축 (커스텀 필드 user ID 해석용)
+  const userNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const issue of allVisibleIssues) {
+      if (issue.assigned_to) {
+        map.set(String(issue.assigned_to.id), issue.assigned_to.name);
+      }
+    }
+    return map;
+  }, [allVisibleIssues]);
+
+  // 커스텀 필드 메타(id, name) 및 고유 값 추출
+  const { customFieldMeta, customFieldValues } = useMemo(() => {
+    const metaMap = new Map<number, string>();
+    const valuesMap = new Map<number, Set<string>>();
+
+    for (const issue of allVisibleIssues) {
+      for (const cf of issue.custom_fields ?? []) {
+        if (!metaMap.has(cf.id)) metaMap.set(cf.id, cf.name);
+        if (!valuesMap.has(cf.id)) valuesMap.set(cf.id, new Set());
+        if (cf.value !== null) {
+          const str = Array.isArray(cf.value) ? cf.value.join(",") : cf.value;
+          if (str !== "") valuesMap.get(cf.id)!.add(str);
+        }
+      }
+    }
+
+    const customFieldMeta = Array.from(metaMap.entries()).map(([id, name]) => ({ id, name }));
+    const customFieldValues: Record<string, string[]> = {};
+    for (const [id, vals] of valuesMap.entries()) {
+      customFieldValues[`cf_${id}`] = Array.from(vals).sort();
+    }
+
+    return { customFieldMeta, customFieldValues };
+  }, [allVisibleIssues]);
+
+  // 표준 필드 + 커스텀 필드 통합 목록
+  const allFieldOptions = useMemo(() => {
+    const cfOptions = customFieldMeta.map(({ id, name }) => ({
+      value: `cf_${id}` as FilterField,
+      label: name,
+    }));
+    return [...FIELD_OPTIONS, ...cfOptions];
+  }, [customFieldMeta]);
 
   // 실시간 미리보기: 현재 조건으로 필터링된 일감 목록
   const previewIssues = useMemo(() => {
@@ -125,16 +288,11 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
     if (NAMED_ID_FIELDS.includes(cond.field)) {
       const options = fieldOptions[cond.field] ?? [];
       return (
-        <select
-          className="filter-editor-select"
+        <SearchableSelect
+          options={options}
           value={cond.value}
-          onChange={(e) => updateCondition(idx, { value: e.target.value })}
-        >
-          <option value="">선택</option>
-          {options.map((opt) => (
-            <option key={opt.id} value={String(opt.id)}>{opt.name}</option>
-          ))}
-        </select>
+          onChange={(val) => updateCondition(idx, { value: val })}
+        />
       );
     }
 
@@ -145,6 +303,44 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
           className="filter-editor-input"
           value={cond.value}
           onChange={(e) => updateCondition(idx, { value: e.target.value })}
+        />
+      );
+    }
+
+    if (cond.field.startsWith("cf_")) {
+      const knownValues = customFieldValues[cond.field] ?? [];
+      const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+      const isDateField = knownValues.length > 0 && knownValues.every((v) => DATE_PATTERN.test(v));
+      if (isDateField) {
+        return (
+          <input
+            type="date"
+            className="filter-editor-input"
+            value={cond.value}
+            onChange={(e) => updateCondition(idx, { value: e.target.value })}
+          />
+        );
+      }
+      if (knownValues.length > 0) {
+        const options: SearchableSelectOption[] = knownValues.map((v) => ({
+          value: v,
+          label: userNameMap.get(v) ?? v,
+        }));
+        return (
+          <SearchableSelect
+            options={options}
+            value={cond.value}
+            onChange={(val) => updateCondition(idx, { value: val })}
+          />
+        );
+      }
+      return (
+        <input
+          type="text"
+          className="filter-editor-input"
+          value={cond.value}
+          onChange={(e) => updateCondition(idx, { value: e.target.value })}
+          placeholder="값 입력"
         />
       );
     }
@@ -213,7 +409,7 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
                   value={cond.field}
                   onChange={(e) => updateCondition(idx, { field: e.target.value as FilterField })}
                 >
-                  {FIELD_OPTIONS.map((opt) => (
+                  {allFieldOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>

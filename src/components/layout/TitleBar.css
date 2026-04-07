@@ -53,11 +53,6 @@
   color: var(--accent);
 }
 
-.titlebar-btn-close:hover {
-  background: #eb5757;
-  color: white;
-}
-
 /* Refresh & Poll interval */
 .titlebar-refresh-btn svg {
   transition: transform 0.3s ease;

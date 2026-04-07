@@ -20,17 +20,21 @@ function App() {
   const { loadTodoData } = useTodoStore();
   const initialized = useRef(false);
 
-  // 앱 초기화
+  // 앱 초기화 (store load를 직렬화하여 macOS WKWebView IPC 병목 방지)
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
 
     initTheme();
     initPollInterval();
-    loadSavedCredentials();
-    loadLastSeen();
-    loadTodoData();
-    loadTasks();
+
+    const init = async () => {
+      await loadSavedCredentials();
+      await loadLastSeen();
+      await loadTodoData();
+      await loadTasks();
+    };
+    init();
   }, [initTheme, initPollInterval, loadSavedCredentials, loadLastSeen, loadTodoData, loadTasks]);
 
   // 인증 후 일감 조회 + polling
