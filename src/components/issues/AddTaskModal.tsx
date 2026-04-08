@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { usePersonalTaskStore } from "../../stores/personalTaskStore";
+import { useTranslation } from "../../lib/i18n";
 import "./AddTaskModal.css";
 
 export function AddTaskModal() {
   const { isModalOpen, closeModal, addTask } = usePersonalTaskStore();
+  const { t } = useTranslation();
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -36,7 +38,7 @@ export function AddTaskModal() {
     <div className="modal-backdrop" onClick={handleBackdropClick}>
       <div className="modal-content">
         <div className="modal-header">
-          <span className="modal-title">개인 작업 추가</span>
+          <span className="modal-title">{t("addTask.title")}</span>
           <button className="modal-close-btn" onClick={closeModal}>
             <X size={16} />
           </button>
@@ -44,7 +46,7 @@ export function AddTaskModal() {
         <form onSubmit={handleSubmit}>
           <div className="modal-field">
             <label className="modal-label">
-              작업명 <span className="modal-required">*</span>
+              {t("addTask.taskNameRequired")}
             </label>
             <input
               ref={subjectRef}
@@ -52,21 +54,21 @@ export function AddTaskModal() {
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="작업명을 입력하세요"
+              placeholder={t("addTask.taskNamePlaceholder")}
             />
           </div>
           <div className="modal-field">
-            <label className="modal-label">작업 내용</label>
+            <label className="modal-label">{t("addTask.description")}</label>
             <textarea
               className="modal-textarea"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="작업 내용을 입력하세요 (선택)"
+              placeholder={t("addTask.descriptionPlaceholder")}
               rows={8}
             />
           </div>
           <div className="modal-field">
-            <label className="modal-label">작업 기한</label>
+            <label className="modal-label">{t("addTask.dueDate")}</label>
             <input
               className="modal-input"
               type="date"
@@ -76,10 +78,10 @@ export function AddTaskModal() {
           </div>
           <div className="modal-actions">
             <button type="button" className="modal-btn modal-btn-cancel" onClick={closeModal}>
-              취소
+              {t("addTask.cancel")}
             </button>
             <button type="submit" className="modal-btn modal-btn-submit" disabled={!subject.trim()}>
-              추가
+              {t("addTask.add")}
             </button>
           </div>
         </form>

@@ -14,6 +14,7 @@ Redmine의 사용성 개선을 위한 크로스 플랫폼 데스크톱 클라이
 - **Tauri Plugins**: global-shortcut, store, http, process, opener
 - **UI Libraries**: lucide-react (아이콘), date-fns (날짜), qrcode.react (QR 코드)
 - **UI**: CSS custom properties 기반 light/dark theme
+- **i18n**: `src/lib/i18n.ts` 기반 ko/en 이중 언어. `useTranslation()` hook으로 접근. 기본값 영어
 
 ## Commands
 
@@ -45,22 +46,23 @@ src-tauri/src/
   tray.rs   - System tray 생성. Windows: 좌클릭 창 토글 + 우클릭 메뉴. macOS: 좌클릭 메뉴 표시 (OS 관례)
 
 src/
-  App.tsx   - 최상위 컴포넌트. 인증 분기, 상세 뷰 분기, polling 설정
+  App.tsx   - 최상위 컴포넌트. 인증 분기, 상세 뷰 분기, polling 설정, IssueEditModal 렌더링, initLanguage() 호출
   types/
-    redmine.ts - Redmine API 타입 (Issue, User, Status 등)
+    redmine.ts - Redmine API 타입 (Issue, User, Status, Tracker, Project, Member, IssueCreatePayload, IssueUpdatePayload 등)
     app.ts     - 앱 내부 타입 (ViewTab, SortField, Theme, PersonalTask, CustomFilter, FilterCondition 등)
   stores/
     authStore.ts        - 인증 상태, API Key 저장/복원
-    issueStore.ts       - 일감 목록 (뷰별 fetch), 선택된 일감 상세, last_seen 관리
-    settingsStore.ts    - 테마, 폴링 간격 설정
+    issueStore.ts       - 일감 목록 (뷰별 fetch), 선택된 일감 상세, last_seen 관리, 일감 CRUD(등록/수정/댓글), 등록·수정 모달 상태(isCreateModalOpen, editingIssueId)
+    settingsStore.ts    - 테마, 폴링 간격, 언어(ko/en) 설정
     personalTaskStore.ts - 로컬 개인 작업 CRUD
     todoStore.ts        - 할일 보드 섹션/항목 관리, 커스텀 필터별 섹션 관리
   lib/
-    redmineClient.ts - Redmine REST API wrapper. X-Redmine-API-Key header 인증
+    redmineClient.ts - Redmine REST API wrapper. X-Redmine-API-Key header 인증. 일감 CRUD, 댓글, 프로젝트/트래커/우선순위 조회 포함
     dateUtils.ts     - 진행률 계산, 날짜 포맷 유틸
     calendarUtils.ts - Google Calendar URL 생성, ICS 파일 생성
     markupParser.ts  - Redmine Textile/HTML 마크업 → React 렌더링 (XSS 방지)
     filterUtils.ts   - 커스텀 필터 조건 적용 (일감 필터링 엔진)
+    i18n.ts          - ko/en 번역 딕셔너리 + useTranslation() hook
   styles/
     variables.css - CSS custom properties (light/dark 테마 변수)
     global.css    - 글로벌 스타일
@@ -68,13 +70,17 @@ src/
     layout/   - TitleBar (custom decorations, drag region, 최대화 토글, 새로고침/polling 간격), BottomBar (개인 작업/섹션 추가)
     auth/     - LoginForm (URL + API Key)
     common/   - LoadingSpinner, ImageViewer (확대/축소/드래그)
-    issues/   - IssueList, IssueItem, IssueDetail, ProgressBar, SortControls, PriorityBadge,
-                ViewTabs, FilterBar, FilterEditor, TodoView, AddTaskModal, CalendarButton, PersonalTaskItem, PersonalTaskDetail
+    issues/   - IssueList, IssueItem, IssueDetail (수정 버튼 + 댓글 입력폼 포함), ProgressBar, SortControls, PriorityBadge,
+                ViewTabs, FilterBar, FilterEditor, TodoView, AddTaskModal, CalendarButton, PersonalTaskItem, PersonalTaskDetail,
+                IssueEditModal (일감 등록/수정 모달)
 ```
 
 ## Key Design Decisions
 
-- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R. TitleBar는 커스텀 드래그 영역 + 앱 기능 버튼(레드마인 웹 열기, 새로고침, 폴링 간격, 로그아웃, 테마, 항상위, 최소화, 최대화, 종료) 포함
+- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R. TitleBar는 커스텀 드래그 영역 + 앱 기능 버튼(레드마인 웹 열기, 새 일감, 새로고침, 폴링 간격, 로그아웃, 테마, 언어 토글, 항상위) 포함
+- **다국어(i18n)**: 영어(en, 기본값)/한국어(ko) 지원. `settingsStore.language`로 관리, `localStorage`에 저장. TitleBar의 Languages 아이콘으로 토글. `useTranslation()` hook으로 컴포넌트에서 사용
+- **일감 등록/수정**: IssueEditModal 컴포넌트. TitleBar의 FilePlus 버튼(새 일감) 또는 IssueDetail의 수정 버튼으로 열림. 프로젝트/트래커/상태/우선순위/담당자 등 선택 가능. 프로젝트 멤버는 `/projects/{id}/memberships.json`으로 조회
+- **댓글**: IssueDetail 하단의 textarea에서 입력 후 등록. PUT /issues/{id}.json에 notes 필드로 전송
 - **외부 링크**: `tauri-plugin-opener`의 `openUrl()`으로 시스템 기본 브라우저 열기. TitleBar에 레드마인 홈 버튼(Globe), IssueDetail 헤더에 해당 일감 웹 URL 버튼(ExternalLink)
 - **인증**: Redmine API Key만 사용. `tauri-plugin-store`로 앱 데이터 디렉토리에 저장
 - **"변경됨" 감지**: Redmine에 unread API가 없으므로 클라이언트에서 issue별 last_seen_updated_on을 저장/비교

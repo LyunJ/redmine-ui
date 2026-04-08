@@ -1,16 +1,18 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Moon, Sun, LogOut, Pin, PinOff, RefreshCw, ChevronDown, Globe } from "lucide-react";
+import { Moon, Sun, LogOut, Pin, PinOff, RefreshCw, ChevronDown, Globe, Languages, FilePlus } from "lucide-react";
 import { useSettingsStore, POLL_INTERVAL_OPTIONS } from "../../stores/settingsStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useIssueStore } from "../../stores/issueStore";
+import { useTranslation } from "../../lib/i18n";
 import "./TitleBar.css";
 
 export function TitleBar() {
-  const { theme, toggleTheme, pollIntervalMs, setPollInterval } = useSettingsStore();
+  const { theme, toggleTheme, pollIntervalMs, setPollInterval, toggleLanguage } = useSettingsStore();
   const { isAuthenticated, currentUser, logout, baseUrl } = useAuthStore();
-  const { fetchAllViews, isLoading } = useIssueStore();
+  const { fetchAllViews, isLoading, openCreateModal } = useIssueStore();
+  const { t } = useTranslation();
   const appWindow = getCurrentWindow();
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(true);
   const [pollDropdownOpen, setPollDropdownOpen] = useState(false);
@@ -50,14 +52,21 @@ export function TitleBar() {
             <button
               className="titlebar-btn"
               onClick={() => baseUrl && openUrl(baseUrl)}
-              title="레드마인 웹에서 열기"
+              title={t("titlebar.openRedmine")}
             >
               <Globe size={14} />
             </button>
             <button
+              className="titlebar-btn titlebar-new-issue-btn"
+              onClick={openCreateModal}
+              title={t("titlebar.newIssue")}
+            >
+              <FilePlus size={14} />
+            </button>
+            <button
               className={`titlebar-btn titlebar-refresh-btn ${isLoading ? "titlebar-refreshing" : ""}`}
               onClick={() => fetchAllViews()}
-              title="새로고침"
+              title={t("titlebar.refresh")}
             >
               <RefreshCw size={13} />
             </button>
@@ -65,7 +74,7 @@ export function TitleBar() {
               <button
                 className={`titlebar-btn titlebar-poll-btn ${pollDropdownOpen ? "titlebar-btn-active" : ""}`}
                 onClick={() => setPollDropdownOpen(!pollDropdownOpen)}
-                title="갱신 주기"
+                title={t("titlebar.pollInterval")}
               >
                 <span className="titlebar-poll-label">{currentPollLabel}</span>
                 <ChevronDown size={10} />
@@ -90,7 +99,7 @@ export function TitleBar() {
             <button
               className="titlebar-btn"
               onClick={logout}
-              title="로그아웃"
+              title={t("titlebar.logout")}
             >
               <LogOut size={14} />
             </button>
@@ -99,14 +108,21 @@ export function TitleBar() {
         <button
           className="titlebar-btn"
           onClick={toggleTheme}
-          title={theme === "light" ? "다크 모드" : "라이트 모드"}
+          title={theme === "light" ? t("titlebar.darkMode") : t("titlebar.lightMode")}
         >
           {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
         </button>
         <button
+          className="titlebar-btn"
+          onClick={toggleLanguage}
+          title={t("titlebar.language")}
+        >
+          <Languages size={14} />
+        </button>
+        <button
           className={`titlebar-btn${isAlwaysOnTop ? " titlebar-btn-active" : ""}`}
           onClick={toggleAlwaysOnTop}
-          title={isAlwaysOnTop ? "항상 위 해제" : "항상 위 고정"}
+          title={isAlwaysOnTop ? t("titlebar.unpinFromTop") : t("titlebar.pinToTop")}
         >
           {isAlwaysOnTop ? <Pin size={14} /> : <PinOff size={14} />}
         </button>

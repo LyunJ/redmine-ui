@@ -2,11 +2,13 @@ import { useState } from "react";
 import { Plus, X, Pencil } from "lucide-react";
 import { useTodoStore } from "../../stores/todoStore";
 import { FilterEditor } from "./FilterEditor";
+import { useTranslation } from "../../lib/i18n";
 import type { CustomFilter } from "../../types/app";
 import "./FilterBar.css";
 
 export function FilterBar() {
   const { filters, activeFilterId, setActiveFilter, deleteFilter } = useTodoStore();
+  const { t } = useTranslation();
   const [showEditor, setShowEditor] = useState(false);
   const [editingFilter, setEditingFilter] = useState<CustomFilter | null>(null);
 
@@ -41,14 +43,14 @@ export function FilterBar() {
                   <button
                     className="filter-chip-action"
                     onClick={(e) => { e.stopPropagation(); handleEdit(filter); }}
-                    title="필터 편집"
+                    title={t("filter.edit")}
                   >
                     <Pencil size={10} />
                   </button>
                   <button
                     className="filter-chip-action"
                     onClick={(e) => { e.stopPropagation(); deleteFilter(filter.id); }}
-                    title="필터 삭제"
+                    title={t("filter.delete")}
                   >
                     <X size={10} />
                   </button>
@@ -56,7 +58,7 @@ export function FilterBar() {
               )}
             </div>
           ))}
-          <button className="filter-add-btn" onClick={handleAdd} title="필터 추가">
+          <button className="filter-add-btn" onClick={handleAdd} title={t("filter.add")}>
             <Plus size={12} />
           </button>
         </div>

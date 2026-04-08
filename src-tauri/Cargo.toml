@@ -1,6 +1,6 @@
 [package]
 name = "redmine-ui"
-version = "0.2.2"
+version = "0.3.0"
 description = "Redmine UI Desktop Client"
 authors = ["you"]
 edition = "2021"

@@ -88,3 +88,59 @@ export interface IssueStatusesResponse {
 export interface IssuePrioritiesResponse {
   issue_priorities: RedmineIssuePriority[];
 }
+
+export interface RedmineTracker {
+  id: number;
+  name: string;
+}
+
+export interface RedmineProject {
+  id: number;
+  name: string;
+  identifier: string;
+}
+
+export interface RedmineMember {
+  id: number;
+  user: RedmineNamedId;
+}
+
+export interface TrackersResponse {
+  trackers: RedmineTracker[];
+}
+
+export interface ProjectsResponse {
+  projects: RedmineProject[];
+  total_count: number;
+  offset: number;
+  limit: number;
+}
+
+export interface MembershipsResponse {
+  memberships: RedmineMember[];
+}
+
+export interface IssueCreatePayload {
+  project_id: number;
+  tracker_id: number;
+  subject: string;
+  description?: string;
+  status_id?: number;
+  priority_id?: number;
+  assigned_to_id?: number | null;
+  start_date?: string;
+  due_date?: string;
+  done_ratio?: number;
+}
+
+export interface IssueUpdatePayload {
+  subject?: string;
+  description?: string;
+  status_id?: number;
+  priority_id?: number;
+  assigned_to_id?: number | null;
+  start_date?: string;
+  due_date?: string;
+  done_ratio?: number;
+  notes?: string;
+}

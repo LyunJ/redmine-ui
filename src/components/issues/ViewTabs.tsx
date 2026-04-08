@@ -1,27 +1,29 @@
 import { useIssueStore } from "../../stores/issueStore";
+import { useTranslation } from "../../lib/i18n";
 import type { ViewTab } from "../../types/app";
 import "./ViewTabs.css";
 
-const VIEW_OPTIONS: { tab: ViewTab; label: string }[] = [
-  { tab: "todo", label: "해야할 일" },
-  { tab: "assigned", label: "담당 일감" },
-  { tab: "reported", label: "보고한 일감" },
-  { tab: "completed", label: "완료된 일감" },
-  { tab: "personal_completed", label: "완료된 개인 작업" },
-];
-
 export function ViewTabs() {
   const { currentView, setCurrentView } = useIssueStore();
+  const { t } = useTranslation();
+
+  const VIEW_OPTIONS: { tab: ViewTab; labelKey: string }[] = [
+    { tab: "todo", labelKey: "tab.todo" },
+    { tab: "assigned", labelKey: "tab.assigned" },
+    { tab: "reported", labelKey: "tab.reported" },
+    { tab: "completed", labelKey: "tab.completed" },
+    { tab: "personal_completed", labelKey: "tab.personalCompleted" },
+  ];
 
   return (
     <div className="view-tabs">
-      {VIEW_OPTIONS.map(({ tab, label }) => (
+      {VIEW_OPTIONS.map(({ tab, labelKey }) => (
         <button
           key={tab}
           className={`view-tab ${currentView === tab ? "view-tab-active" : ""}`}
           onClick={() => setCurrentView(tab)}
         >
-          {label}
+          {t(labelKey)}
         </button>
       ))}
     </div>

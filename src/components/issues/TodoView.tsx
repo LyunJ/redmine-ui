@@ -4,6 +4,7 @@ import { usePersonalTaskStore } from "../../stores/personalTaskStore";
 import { useTodoStore, SECTION_COLORS } from "../../stores/todoStore";
 import type { SectionSortMode } from "../../stores/todoStore";
 import { applyFilter } from "../../lib/filterUtils";
+import { useTranslation } from "../../lib/i18n";
 import { IssueItem } from "./IssueItem";
 import { PersonalTaskItem } from "./PersonalTaskItem";
 import { Inbox, X, GripVertical, ArrowUpDown, ChevronRight, ChevronDown } from "lucide-react";
@@ -22,6 +23,7 @@ interface DragState {
 export function TodoView() {
   const myIssues = useIssueStore((s) => s.issues);
   const allVisibleIssues = useIssueStore((s) => s.allVisibleIssues);
+  const { t } = useTranslation();
   const fetchedOnce = useIssueStore((s) => s.fetchedOnce);
   const error = useIssueStore((s) => s.error);
   const isUpdated = useIssueStore((s) => s.isUpdated);
@@ -229,7 +231,7 @@ export function TodoView() {
     return (
       <div className="issue-list-empty">
         <Inbox size={32} />
-        <span>해야할 일이 없습니다</span>
+        <span>{t("todo.noItems")}</span>
       </div>
     );
   }
@@ -279,7 +281,7 @@ export function TodoView() {
                 <button
                   className="todo-section-toggle"
                   onClick={() => toggleSectionCollapse(section.id)}
-                  title={section.collapsed ? "섹션 펼치기" : "섹션 접기"}
+                  title={section.collapsed ? t("todo.expandSection") : t("todo.collapseSection")}
                 >
                   {section.collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                 </button>
@@ -343,12 +345,12 @@ export function TodoView() {
               <button
                 className={`todo-section-sort ${section.sortMode !== "manual" ? "todo-section-sort-active" : ""}`}
                 onClick={() => updateSectionSort(section.id, section.sortMode === "manual" ? "created_on" : "manual")}
-                title={section.sortMode === "manual" ? "등록일 순 정렬" : "정렬 없음 (수동)"}
+                title={section.sortMode === "manual" ? t("todo.sortByCreated") : t("todo.noSort")}
               >
                 <ArrowUpDown size={12} />
               </button>
               {section.id !== "default" && (
-                <button className="todo-section-delete" onClick={() => deleteSection(section.id)} title="섹션 삭제">
+                <button className="todo-section-delete" onClick={() => deleteSection(section.id)} title={t("todo.deleteSection")}>
                   <X size={12} />
                 </button>
               )}
@@ -360,10 +362,10 @@ export function TodoView() {
                   <div className="todo-drop-indicator" />
                 )}
                 {items.length === 0 && !isDragging && (
-                  <div className="todo-section-empty">항목이 없습니다</div>
+                  <div className="todo-section-empty">{t("todo.empty")}</div>
                 )}
                 {items.length === 0 && isDragging && !getDropIndicator(section.id, 0) && (
-                  <div className="todo-section-drop-zone">여기에 놓기</div>
+                  <div className="todo-section-drop-zone">{t("todo.dropHere")}</div>
                 )}
                 {items.map((key, idx) => (
                   <div key={key}>

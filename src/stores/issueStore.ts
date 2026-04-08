@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { load } from "@tauri-apps/plugin-store";
-import type { RedmineIssue, RedmineIssueDetail, RedmineIssueStatus } from "../types/redmine";
+import type { RedmineIssue, RedmineIssueDetail, RedmineIssueStatus, IssueCreatePayload, IssueUpdatePayload } from "../types/redmine";
 import type { SortField, SortDirection, ViewTab } from "../types/app";
 import { useAuthStore } from "./authStore";
 
@@ -21,6 +21,8 @@ interface IssueState {
   statusMap: RedmineIssueStatus[];
   selectedIssue: RedmineIssueDetail | null;
   isLoadingDetail: boolean;
+  isCreateModalOpen: boolean;
+  editingIssueId: number | null;
   setCurrentView: (view: ViewTab) => void;
   fetchIssues: () => Promise<void>;
   fetchReportedIssues: () => Promise<void>;
@@ -28,6 +30,7 @@ interface IssueState {
   fetchAllVisibleIssues: () => Promise<void>;
   fetchAllViews: () => Promise<void>;
   selectIssue: (issueId: number) => Promise<void>;
+  refreshSelectedIssue: () => Promise<void>;
   clearSelectedIssue: () => void;
   setSortField: (field: SortField) => void;
   toggleSortDirection: () => void;
@@ -36,6 +39,12 @@ interface IssueState {
   isUpdated: (issue: RedmineIssue) => boolean;
   getSortedIssues: () => RedmineIssue[];
   getCurrentViewIssues: () => RedmineIssue[];
+  openCreateModal: () => void;
+  openEditModal: (issueId: number) => void;
+  closeEditModal: () => void;
+  createIssue: (payload: IssueCreatePayload) => Promise<RedmineIssueDetail>;
+  updateIssue: (issueId: number, payload: IssueUpdatePayload) => Promise<void>;
+  addComment: (issueId: number, notes: string) => Promise<void>;
 }
 
 export const useIssueStore = create<IssueState>((set, get) => ({
@@ -53,6 +62,8 @@ export const useIssueStore = create<IssueState>((set, get) => ({
   statusMap: [],
   selectedIssue: null,
   isLoadingDetail: false,
+  isCreateModalOpen: false,
+  editingIssueId: null,
   setCurrentView: (view: ViewTab) => {
     set({ currentView: view });
   },
@@ -77,8 +88,58 @@ export const useIssueStore = create<IssueState>((set, get) => ({
     }
   },
 
+  refreshSelectedIssue: async () => {
+    const { selectedIssue } = get();
+    if (!selectedIssue) return;
+    const client = useAuthStore.getState().client;
+    if (!client) return;
+    try {
+      const detail = await client.getIssueDetail(selectedIssue.id);
+      set({ selectedIssue: detail });
+    } catch {
+      // 상세 새로고침 실패 시 무시
+    }
+  },
+
   clearSelectedIssue: () => {
     set({ selectedIssue: null });
+  },
+
+  openCreateModal: () => {
+    set({ isCreateModalOpen: true, editingIssueId: null });
+  },
+
+  openEditModal: (issueId: number) => {
+    set({ isCreateModalOpen: true, editingIssueId: issueId });
+  },
+
+  closeEditModal: () => {
+    set({ isCreateModalOpen: false, editingIssueId: null });
+  },
+
+  createIssue: async (payload: IssueCreatePayload) => {
+    const client = useAuthStore.getState().client;
+    if (!client) throw new Error("Not authenticated");
+    const created = await client.createIssue(payload);
+    // 생성 후 전체 뷰 새로고침
+    get().fetchAllViews();
+    return created;
+  },
+
+  updateIssue: async (issueId: number, payload: IssueUpdatePayload) => {
+    const client = useAuthStore.getState().client;
+    if (!client) throw new Error("Not authenticated");
+    await client.updateIssue(issueId, payload);
+    // 수정 후 상세 + 전체 뷰 새로고침
+    await get().refreshSelectedIssue();
+    get().fetchAllViews();
+  },
+
+  addComment: async (issueId: number, notes: string) => {
+    const client = useAuthStore.getState().client;
+    if (!client) throw new Error("Not authenticated");
+    await client.addComment(issueId, notes);
+    await get().refreshSelectedIssue();
   },
 
   fetchIssues: async () => {

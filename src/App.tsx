@@ -9,13 +9,14 @@ import { LoginForm } from "./components/auth/LoginForm";
 import { IssueList } from "./components/issues/IssueList";
 import { IssueDetail } from "./components/issues/IssueDetail";
 import { PersonalTaskDetail } from "./components/issues/PersonalTaskDetail";
+import { IssueEditModal } from "./components/issues/IssueEditModal";
 import { LoadingSpinner } from "./components/common/LoadingSpinner";
 import "./styles/global.css";
 
 function App() {
   const { isAuthenticated, isLoading: authLoading, loadSavedCredentials } = useAuthStore();
   const { fetchAllViews, loadLastSeen, selectedIssue, isLoadingDetail } = useIssueStore();
-  const { initTheme, initPollInterval, pollIntervalMs } = useSettingsStore();
+  const { initTheme, initPollInterval, initLanguage, pollIntervalMs } = useSettingsStore();
   const { loadTasks, selectedTask } = usePersonalTaskStore();
   const { loadTodoData } = useTodoStore();
   const initialized = useRef(false);
@@ -27,6 +28,7 @@ function App() {
 
     initTheme();
     initPollInterval();
+    initLanguage();
 
     const init = async () => {
       await loadSavedCredentials();
@@ -35,7 +37,7 @@ function App() {
       await loadTasks();
     };
     init();
-  }, [initTheme, initPollInterval, loadSavedCredentials, loadLastSeen, loadTodoData, loadTasks]);
+  }, [initTheme, initPollInterval, initLanguage, loadSavedCredentials, loadLastSeen, loadTodoData, loadTasks]);
 
   // 인증 후 일감 조회 + polling
   useEffect(() => {
@@ -64,6 +66,7 @@ function App() {
     <>
       <TitleBar />
       {renderContent()}
+      <IssueEditModal />
     </>
   );
 }

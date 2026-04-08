@@ -8,20 +8,22 @@ import { FilterBar } from "./FilterBar";
 import { TodoView } from "./TodoView";
 import { AddTaskModal } from "./AddTaskModal";
 import { BottomBar } from "../layout/BottomBar";
+import { useTranslation } from "../../lib/i18n";
 import { Loader2, Inbox } from "lucide-react";
 import "./IssueList.css";
-
-const EMPTY_MESSAGES: Record<string, string> = {
-  todo: "해야할 일이 없습니다",
-  assigned: "진행할 일감이 없습니다",
-  reported: "보고한 일감이 없습니다",
-  completed: "완료된 일감이 없습니다",
-  personal_completed: "완료된 개인 작업이 없습니다",
-};
 
 export function IssueList() {
   const { isLoading, error, getCurrentViewIssues, currentView } = useIssueStore();
   const { getCompletedTasks } = usePersonalTaskStore();
+  const { t } = useTranslation();
+
+  const EMPTY_KEYS: Record<string, string> = {
+    todo: "empty.todo",
+    assigned: "empty.assigned",
+    reported: "empty.reported",
+    completed: "empty.completed",
+    personal_completed: "empty.personalCompleted",
+  };
 
   const isTodoView = currentView === "todo";
   const isPersonalCompletedView = currentView === "personal_completed";
@@ -50,7 +52,7 @@ export function IssueList() {
             {!hasContent && (
               <div className="issue-list-empty">
                 <Inbox size={32} />
-                <span>{EMPTY_MESSAGES[currentView]}</span>
+                <span>{t(EMPTY_KEYS[currentView])}</span>
               </div>
             )}
             {completedTasks.map((task) => (
@@ -62,7 +64,7 @@ export function IssueList() {
             {isLoading && !hasContent && (
               <div className="issue-list-empty">
                 <Loader2 size={24} className="spin" />
-                <span>일감을 불러오는 중...</span>
+                <span>{t("loading.issues")}</span>
               </div>
             )}
 
@@ -75,7 +77,7 @@ export function IssueList() {
             {!isLoading && !error && !hasContent && (
               <div className="issue-list-empty">
                 <Inbox size={32} />
-                <span>{EMPTY_MESSAGES[currentView]}</span>
+                <span>{t(EMPTY_KEYS[currentView])}</span>
               </div>
             )}
 

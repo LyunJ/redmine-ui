@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useIssueStore } from "../../stores/issueStore";
 import { useAuthStore } from "../../stores/authStore";
+import { useTranslation } from "../../lib/i18n";
 import { PriorityBadge } from "./PriorityBadge";
 import { ProgressBar } from "./ProgressBar";
 import { CalendarButton } from "./CalendarButton";
 import { ImageViewer } from "../common/ImageViewer";
-import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Pencil, Send } from "lucide-react";
 import { formatDate } from "../../lib/dateUtils";
 import { parseRedmineMarkup } from "../../lib/markupParser";
 import "./IssueDetail.css";
@@ -37,15 +38,20 @@ export function IssueDetail() {
   const selectedIssue = useIssueStore((s) => s.selectedIssue);
   const isLoadingDetail = useIssueStore((s) => s.isLoadingDetail);
   const clearSelectedIssue = useIssueStore((s) => s.clearSelectedIssue);
+  const openEditModal = useIssueStore((s) => s.openEditModal);
+  const addComment = useIssueStore((s) => s.addComment);
   const client = useAuthStore((s) => s.client);
   const baseUrl = useAuthStore((s) => s.baseUrl);
+  const { t } = useTranslation();
+
   const [viewerSrc, setViewerSrc] = useState<string | null>(null);
   const [imageMap, setImageMap] = useState<Record<string, string>>({});
   const blobUrlsRef = useRef<string[]>([]);
 
-  // 이미지 로딩: state 기반으로 blob URL 관리
+  const [commentText, setCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
   useEffect(() => {
-    // 이전 blob URL 해제
     blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     blobUrlsRef.current = [];
     setImageMap({});
@@ -54,7 +60,6 @@ export function IssueDetail() {
 
     let cancelled = false;
 
-    // description + journals에서 이미지 소스 수집
     const sources = new Set<string>();
     if (selectedIssue.description) {
       collectImageSources(parseRedmineMarkup(selectedIssue.description)).forEach(
@@ -101,7 +106,6 @@ export function IssueDetail() {
     };
   }, [selectedIssue, client]);
 
-  // 컴포넌트 unmount 시 blob URL 해제
   useEffect(() => {
     return () => {
       blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -114,6 +118,18 @@ export function IssueDetail() {
       setViewerSrc((target as HTMLImageElement).src);
     }
   }, []);
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim() || !selectedIssue) return;
+    setIsSubmittingComment(true);
+    try {
+      await addComment(selectedIssue.id, commentText.trim());
+      setCommentText("");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   if (isLoadingDetail) {
     return (
@@ -134,18 +150,28 @@ export function IssueDetail() {
       <div className="issue-detail-header">
         <button className="issue-detail-back" onClick={clearSelectedIssue}>
           <ArrowLeft size={16} />
-          <span>목록</span>
+          <span>{t("detail.back")}</span>
         </button>
-        {baseUrl && (
+        <div className="issue-detail-header-right">
           <button
-            className="issue-detail-open-web"
-            onClick={() => openUrl(`${baseUrl}/issues/${selectedIssue.id}`)}
-            title="웹에서 열기"
+            className="issue-detail-edit"
+            onClick={() => openEditModal(selectedIssue.id)}
+            title={t("detail.edit")}
           >
-            <ExternalLink size={13} />
-            <span>웹에서 열기</span>
+            <Pencil size={13} />
+            <span>{t("detail.edit")}</span>
           </button>
-        )}
+          {baseUrl && (
+            <button
+              className="issue-detail-open-web"
+              onClick={() => openUrl(`${baseUrl}/issues/${selectedIssue.id}`)}
+              title={t("detail.openInWeb")}
+            >
+              <ExternalLink size={13} />
+              <span>{t("detail.openInWeb")}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="issue-detail-scroll" onClick={handleImageClick}>
@@ -156,38 +182,38 @@ export function IssueDetail() {
 
         <div className="issue-detail-info">
           <div className="info-row">
-            <span className="info-label">상태</span>
+            <span className="info-label">{t("detail.status")}</span>
             <span className="info-value">{selectedIssue.status.name}</span>
           </div>
           <div className="info-row">
-            <span className="info-label">우선순위</span>
+            <span className="info-label">{t("detail.priority")}</span>
             <PriorityBadge priority={selectedIssue.priority} />
           </div>
           <div className="info-row">
-            <span className="info-label">담당자</span>
+            <span className="info-label">{t("detail.assignee")}</span>
             <span className="info-value">
               {selectedIssue.assigned_to?.name ?? "-"}
             </span>
           </div>
           <div className="info-row">
-            <span className="info-label">프로젝트</span>
+            <span className="info-label">{t("detail.project")}</span>
             <span className="info-value">{selectedIssue.project.name}</span>
           </div>
           <div className="info-row">
-            <span className="info-label">진행률</span>
+            <span className="info-label">{t("detail.progress")}</span>
             <ProgressBar
               startDate={selectedIssue.start_date}
               dueDate={selectedIssue.due_date}
             />
           </div>
           <div className="info-row">
-            <span className="info-label">시작일</span>
+            <span className="info-label">{t("detail.startDate")}</span>
             <span className="info-value">
               {formatDate(selectedIssue.start_date)}
             </span>
           </div>
           <div className="info-row">
-            <span className="info-label">완료예정일</span>
+            <span className="info-label">{t("detail.dueDate")}</span>
             <span className="info-value">
               {formatDate(selectedIssue.due_date)}
             </span>
@@ -200,7 +226,7 @@ export function IssueDetail() {
 
         {selectedIssue.description && (
           <div className="issue-detail-section">
-            <h3 className="section-title">설명</h3>
+            <h3 className="section-title">{t("detail.description")}</h3>
             <div
               className="issue-description markup-content"
               dangerouslySetInnerHTML={{
@@ -212,7 +238,7 @@ export function IssueDetail() {
 
         {journals.length > 0 && (
           <div className="issue-detail-section">
-            <h3 className="section-title">댓글 ({journals.length})</h3>
+            <h3 className="section-title">{t("detail.comments")} ({journals.length})</h3>
             <div className="issue-journals">
               {journals.map((journal) => (
                 <div key={journal.id} className="journal-item">
@@ -233,6 +259,35 @@ export function IssueDetail() {
             </div>
           </div>
         )}
+
+        {/* 댓글 입력 */}
+        <div className="issue-detail-section">
+          <h3 className="section-title">{t("detail.addComment")}</h3>
+          <form className="issue-comment-form" onSubmit={handleSubmitComment}>
+            <textarea
+              className="issue-comment-input"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder={t("detail.commentPlaceholder")}
+              rows={3}
+              disabled={isSubmittingComment}
+            />
+            <div className="issue-comment-actions">
+              <button
+                type="submit"
+                className="issue-comment-submit"
+                disabled={isSubmittingComment || !commentText.trim()}
+              >
+                {isSubmittingComment ? (
+                  <Loader2 size={13} className="spin" />
+                ) : (
+                  <Send size={13} />
+                )}
+                <span>{t("detail.submit")}</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       {viewerSrc && (

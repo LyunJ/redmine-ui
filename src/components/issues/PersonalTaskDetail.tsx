@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePersonalTaskStore } from "../../stores/personalTaskStore";
 import { ProgressBar } from "./ProgressBar";
+import { useTranslation } from "../../lib/i18n";
 import { ArrowLeft, Check, RotateCcw, Trash2, Pencil, X } from "lucide-react";
 import { formatDate } from "../../lib/dateUtils";
 import "./PersonalTaskDetail.css";
@@ -8,6 +9,7 @@ import "./PersonalTaskDetail.css";
 export function PersonalTaskDetail() {
   const { selectedTask, clearSelectedTask, completeTask, restoreTask, deleteTask, updateTask } =
     usePersonalTaskStore();
+  const { t } = useTranslation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editSubject, setEditSubject] = useState("");
@@ -21,7 +23,6 @@ export function PersonalTaskDetail() {
     }
   }, [isEditing]);
 
-  // 선택된 작업이 변경되면 편집 모드 해제
   useEffect(() => {
     setIsEditing(false);
   }, [selectedTask?.id]);
@@ -65,49 +66,49 @@ export function PersonalTaskDetail() {
       <div className="pt-detail-header">
         <button className="pt-detail-back" onClick={clearSelectedTask}>
           <ArrowLeft size={16} />
-          <span>목록</span>
+          <span>{t("detail.back")}</span>
         </button>
         <div className="pt-detail-header-actions">
           {isEditing ? (
             <>
-              <button className="pt-detail-action-btn" onClick={cancelEditing} title="취소">
+              <button className="pt-detail-action-btn" onClick={cancelEditing} title={t("ptDetail.cancel")}>
                 <X size={14} />
-                <span>취소</span>
+                <span>{t("ptDetail.cancel")}</span>
               </button>
               <button
                 className="pt-detail-action-btn pt-detail-save-btn"
                 onClick={handleSave}
                 disabled={!editSubject.trim()}
-                title="저장"
+                title={t("ptDetail.save")}
               >
                 <Check size={14} />
-                <span>저장</span>
+                <span>{t("ptDetail.save")}</span>
               </button>
             </>
           ) : selectedTask.completed ? (
             <>
-              <button className="pt-detail-action-btn" onClick={handleRestore} title="복원">
+              <button className="pt-detail-action-btn" onClick={handleRestore} title={t("ptDetail.restore")}>
                 <RotateCcw size={14} />
-                <span>복원</span>
+                <span>{t("ptDetail.restore")}</span>
               </button>
-              <button className="pt-detail-action-btn pt-detail-delete-btn" onClick={handleDelete} title="삭제">
+              <button className="pt-detail-action-btn pt-detail-delete-btn" onClick={handleDelete} title={t("ptDetail.delete")}>
                 <Trash2 size={14} />
-                <span>삭제</span>
+                <span>{t("ptDetail.delete")}</span>
               </button>
             </>
           ) : (
             <>
-              <button className="pt-detail-action-btn" onClick={startEditing} title="수정">
+              <button className="pt-detail-action-btn" onClick={startEditing} title={t("ptDetail.edit")}>
                 <Pencil size={14} />
-                <span>수정</span>
+                <span>{t("ptDetail.edit")}</span>
               </button>
-              <button className="pt-detail-action-btn pt-detail-complete-btn" onClick={handleComplete} title="완료">
+              <button className="pt-detail-action-btn pt-detail-complete-btn" onClick={handleComplete} title={t("ptDetail.complete")}>
                 <Check size={14} />
-                <span>완료</span>
+                <span>{t("ptDetail.complete")}</span>
               </button>
-              <button className="pt-detail-action-btn pt-detail-delete-btn" onClick={handleDelete} title="삭제">
+              <button className="pt-detail-action-btn pt-detail-delete-btn" onClick={handleDelete} title={t("ptDetail.delete")}>
                 <Trash2 size={14} />
-                <span>삭제</span>
+                <span>{t("ptDetail.delete")}</span>
               </button>
             </>
           )}
@@ -116,7 +117,7 @@ export function PersonalTaskDetail() {
 
       <div className="pt-detail-scroll">
         <div className="pt-detail-title">
-          <span className="pt-detail-badge">개인 작업</span>
+          <span className="pt-detail-badge">{t("ptDetail.badge")}</span>
           {isEditing ? (
             <input
               ref={subjectRef}
@@ -128,7 +129,7 @@ export function PersonalTaskDetail() {
                 if (e.key === "Enter") handleSave();
                 if (e.key === "Escape") cancelEditing();
               }}
-              placeholder="작업명을 입력하세요"
+              placeholder={t("ptDetail.taskNamePlaceholder")}
             />
           ) : (
             <h2>{selectedTask.subject}</h2>
@@ -137,17 +138,17 @@ export function PersonalTaskDetail() {
 
         <div className="pt-detail-info">
           <div className="info-row">
-            <span className="info-label">상태</span>
+            <span className="info-label">{t("ptDetail.status")}</span>
             <span className={`info-value ${selectedTask.completed ? "pt-status-completed" : "pt-status-active"}`}>
-              {selectedTask.completed ? "완료" : "진행 중"}
+              {selectedTask.completed ? t("ptDetail.statusCompleted") : t("ptDetail.statusInProgress")}
             </span>
           </div>
           <div className="info-row">
-            <span className="info-label">등록일</span>
+            <span className="info-label">{t("ptDetail.createdOn")}</span>
             <span className="info-value">{formatDate(selectedTask.created_on)}</span>
           </div>
           <div className="info-row">
-            <span className="info-label">작업 기한</span>
+            <span className="info-label">{t("ptDetail.dueDate")}</span>
             {isEditing ? (
               <input
                 className="pt-edit-input pt-edit-date"
@@ -163,32 +164,32 @@ export function PersonalTaskDetail() {
           </div>
           {selectedTask.completed_on && (
             <div className="info-row">
-              <span className="info-label">완료일</span>
+              <span className="info-label">{t("ptDetail.completedOn")}</span>
               <span className="info-value">{formatDate(selectedTask.completed_on)}</span>
             </div>
           )}
           {!selectedTask.completed && selectedTask.due_date && !isEditing && (
             <div className="info-row">
-              <span className="info-label">진행률</span>
+              <span className="info-label">{t("ptDetail.progress")}</span>
               <ProgressBar startDate={selectedTask.created_on.split("T")[0]} dueDate={selectedTask.due_date} />
             </div>
           )}
         </div>
 
         <div className="pt-detail-section">
-          <h3 className="section-title">작업 내용</h3>
+          <h3 className="section-title">{t("ptDetail.description")}</h3>
           {isEditing ? (
             <textarea
               className="pt-edit-textarea"
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="작업 내용을 입력하세요 (선택)"
+              placeholder={t("ptDetail.descriptionPlaceholder")}
               rows={8}
             />
           ) : selectedTask.description ? (
             <div className="pt-detail-description">{selectedTask.description}</div>
           ) : (
-            <div className="pt-detail-description pt-detail-empty">내용 없음</div>
+            <div className="pt-detail-description pt-detail-empty">{t("ptDetail.noContent")}</div>
           )}
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Theme } from "../types/app";
+import type { Language } from "../lib/i18n";
 
 export const POLL_INTERVAL_OPTIONS = [
   { label: "Off", value: 0 },
@@ -13,15 +14,19 @@ export const POLL_INTERVAL_OPTIONS = [
 interface SettingsState {
   theme: Theme;
   pollIntervalMs: number;
+  language: Language;
   toggleTheme: () => void;
   initTheme: () => void;
   setPollInterval: (ms: number) => void;
   initPollInterval: () => void;
+  toggleLanguage: () => void;
+  initLanguage: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   theme: "light",
   pollIntervalMs: 60000,
+  language: "en",
 
   toggleTheme: () => {
     const newTheme = get().theme === "light" ? "dark" : "light";
@@ -51,5 +56,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const ms = parseInt(saved, 10);
       if (!isNaN(ms)) set({ pollIntervalMs: ms });
     }
+  },
+
+  toggleLanguage: () => {
+    const newLang: Language = get().language === "en" ? "ko" : "en";
+    localStorage.setItem("language", newLang);
+    set({ language: newLang });
+  },
+
+  initLanguage: () => {
+    const saved = localStorage.getItem("language") as Language | null;
+    if (saved === "ko" || saved === "en") {
+      set({ language: saved });
+    }
+    // default is "en" (already set in initial state)
   },
 }));

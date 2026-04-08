@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { Plus, Trash2, ChevronDown } from "lucide-react";
 import { useIssueStore } from "../../stores/issueStore";
 import { useTodoStore } from "../../stores/todoStore";
+import { useTranslation } from "../../lib/i18n";
 import { applyFilter } from "../../lib/filterUtils";
 import type { CustomFilter, FilterCondition, FilterField, FilterOperator } from "../../types/app";
 import "./FilterEditor.css";
@@ -16,9 +17,11 @@ interface SearchableSelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  searchPlaceholder?: string;
+  noResultsText?: string;
 }
 
-function SearchableSelect({ options, value, onChange, placeholder = "선택" }: SearchableSelectProps) {
+function SearchableSelect({ options, value, onChange, placeholder = "Select", searchPlaceholder = "Search...", noResultsText = "No results" }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
@@ -92,7 +95,7 @@ function SearchableSelect({ options, value, onChange, placeholder = "선택" }: 
           <input
             type="text"
             className="filter-searchable-search"
-            placeholder="검색..."
+            placeholder={searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -114,7 +117,7 @@ function SearchableSelect({ options, value, onChange, placeholder = "선택" }: 
               </div>
             ))}
             {filtered.length === 0 && (
-              <div className="filter-searchable-empty">검색 결과 없음</div>
+              <div className="filter-searchable-empty">{noResultsText}</div>
             )}
           </div>
         </div>
@@ -122,19 +125,6 @@ function SearchableSelect({ options, value, onChange, placeholder = "선택" }: 
     </div>
   );
 }
-
-const FIELD_OPTIONS: { value: FilterField; label: string }[] = [
-  { value: "status", label: "상태" },
-  { value: "priority", label: "우선순위" },
-  { value: "tracker", label: "트래커" },
-  { value: "project", label: "프로젝트" },
-  { value: "assigned_to", label: "담당자" },
-  { value: "start_date", label: "시작일" },
-  { value: "due_date", label: "완료예정일" },
-  { value: "created_on", label: "등록일" },
-  { value: "updated_on", label: "수정일" },
-  { value: "done_ratio", label: "진행률" },
-];
 
 const NAMED_ID_FIELDS: FilterField[] = ["status", "priority", "tracker", "project", "assigned_to"];
 const DATE_FIELDS: FilterField[] = ["start_date", "due_date", "created_on", "updated_on"];
@@ -162,19 +152,32 @@ function getOperatorsForField(field: FilterField): FilterOperator[] {
 }
 
 interface FilterEditorProps {
-  filter: CustomFilter | null; // null = 새 필터
+  filter: CustomFilter | null;
   onClose: () => void;
 }
 
 export function FilterEditor({ filter, onClose }: FilterEditorProps) {
   const allVisibleIssues = useIssueStore((s) => s.allVisibleIssues);
   const { addFilter, updateFilter } = useTodoStore();
+  const { t } = useTranslation();
 
   const [name, setName] = useState(filter?.name ?? "");
   const [conditions, setConditions] = useState<FilterCondition[]>(filter?.conditions ?? []);
   const [includePersonalTasks, setIncludePersonalTasks] = useState(filter?.includePersonalTasks ?? true);
 
-  // 전체 가시 일감에서 표준 필드 고유 값 추출
+  const FIELD_OPTIONS: { value: FilterField; label: string }[] = [
+    { value: "status", label: t("field.status") },
+    { value: "priority", label: t("field.priority") },
+    { value: "tracker", label: t("field.tracker") },
+    { value: "project", label: t("field.project") },
+    { value: "assigned_to", label: t("field.assignedTo") },
+    { value: "start_date", label: t("field.startDate") },
+    { value: "due_date", label: t("field.dueDate") },
+    { value: "created_on", label: t("field.createdOn") },
+    { value: "updated_on", label: t("field.updatedOn") },
+    { value: "done_ratio", label: t("field.doneRatio") },
+  ];
+
   const fieldOptions = useMemo(() => {
     const extract = (field: FilterField): SearchableSelectOption[] => {
       const map = new Map<number, string>();
@@ -202,7 +205,6 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
     return result;
   }, [allVisibleIssues]);
 
-  // allVisibleIssues에서 userId → 이름 맵 구축 (커스텀 필드 user ID 해석용)
   const userNameMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const issue of allVisibleIssues) {
@@ -213,7 +215,6 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
     return map;
   }, [allVisibleIssues]);
 
-  // 커스텀 필드 메타(id, name) 및 고유 값 추출
   const { customFieldMeta, customFieldValues } = useMemo(() => {
     const metaMap = new Map<number, string>();
     const valuesMap = new Map<number, Set<string>>();
@@ -238,16 +239,14 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
     return { customFieldMeta, customFieldValues };
   }, [allVisibleIssues]);
 
-  // 표준 필드 + 커스텀 필드 통합 목록
   const allFieldOptions = useMemo(() => {
     const cfOptions = customFieldMeta.map(({ id, name }) => ({
       value: `cf_${id}` as FilterField,
       label: name,
     }));
     return [...FIELD_OPTIONS, ...cfOptions];
-  }, [customFieldMeta]);
+  }, [customFieldMeta, FIELD_OPTIONS]);
 
-  // 실시간 미리보기: 현재 조건으로 필터링된 일감 목록
   const previewIssues = useMemo(() => {
     const validConditions = conditions.filter((c) => c.value !== "");
     return applyFilter(allVisibleIssues, validConditions);
@@ -265,7 +264,6 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
     setConditions(conditions.map((c, i) => {
       if (i !== idx) return c;
       const updated = { ...c, ...updates };
-      // 필드 변경 시 operator와 value 초기화
       if (updates.field && updates.field !== c.field) {
         updated.operator = getOperatorsForField(updates.field)[0];
         updated.value = "";
@@ -292,6 +290,9 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
           options={options}
           value={cond.value}
           onChange={(val) => updateCondition(idx, { value: val })}
+          placeholder={t("filterEditor.select")}
+          searchPlaceholder={t("filterEditor.search")}
+          noResultsText={t("filterEditor.noResults")}
         />
       );
     }
@@ -331,6 +332,9 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
             options={options}
             value={cond.value}
             onChange={(val) => updateCondition(idx, { value: val })}
+            placeholder={t("filterEditor.select")}
+            searchPlaceholder={t("filterEditor.search")}
+            noResultsText={t("filterEditor.noResults")}
           />
         );
       }
@@ -340,12 +344,11 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
           className="filter-editor-input"
           value={cond.value}
           onChange={(e) => updateCondition(idx, { value: e.target.value })}
-          placeholder="값 입력"
+          placeholder={t("filterEditor.valuePlaceholder")}
         />
       );
     }
 
-    // done_ratio
     return (
       <input
         type="number"
@@ -363,17 +366,17 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
     <div className="filter-editor-overlay" onClick={onClose}>
       <div className="filter-editor-modal" onClick={(e) => e.stopPropagation()}>
         <div className="filter-editor-header">
-          {filter ? "필터 편집" : "필터 추가"}
+          {filter ? t("filterEditor.editTitle") : t("filterEditor.addTitle")}
         </div>
 
         <div className="filter-editor-body">
           <div className="filter-editor-row">
-            <label className="filter-editor-label">필터 이름</label>
+            <label className="filter-editor-label">{t("filterEditor.filterName")}</label>
             <input
               className="filter-editor-input filter-editor-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="필터 이름"
+              placeholder={t("filterEditor.filterNamePlaceholder")}
               autoFocus
             />
           </div>
@@ -385,21 +388,21 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
                 checked={includePersonalTasks}
                 onChange={(e) => setIncludePersonalTasks(e.target.checked)}
               />
-              개인 작업 포함
+              {t("filterEditor.includePersonalTasks")}
             </label>
           </div>
 
           <div className="filter-editor-conditions">
             <div className="filter-editor-conditions-header">
-              <span className="filter-editor-label">조건</span>
+              <span className="filter-editor-label">{t("filterEditor.conditions")}</span>
               <button className="filter-editor-add-btn" onClick={addCondition}>
                 <Plus size={12} />
-                조건 추가
+                {t("filterEditor.addCondition")}
               </button>
             </div>
 
             {conditions.length === 0 && (
-              <div className="filter-editor-empty">조건 없음 (모든 일감 표시)</div>
+              <div className="filter-editor-empty">{t("filterEditor.noConditions")}</div>
             )}
 
             {conditions.map((cond, idx) => (
@@ -433,15 +436,14 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
             ))}
           </div>
 
-          {/* 실시간 미리보기 */}
           <div className="filter-editor-preview">
             <div className="filter-editor-preview-header">
-              <span className="filter-editor-label">미리보기</span>
-              <span className="filter-editor-preview-count">{previewIssues.length}건</span>
+              <span className="filter-editor-label">{t("filterEditor.preview")}</span>
+              <span className="filter-editor-preview-count">{previewIssues.length}</span>
             </div>
             <div className="filter-editor-preview-list">
               {previewIssues.length === 0 ? (
-                <div className="filter-editor-preview-empty">조건에 맞는 일감이 없습니다</div>
+                <div className="filter-editor-preview-empty">{t("filterEditor.previewEmpty")}</div>
               ) : (
                 previewIssues.slice(0, 50).map((issue) => (
                   <div key={issue.id} className="filter-editor-preview-item">
@@ -452,7 +454,7 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
               )}
               {previewIssues.length > 50 && (
                 <div className="filter-editor-preview-more">
-                  ...외 {previewIssues.length - 50}건
+                  {t("filterEditor.previewMore", { n: previewIssues.length - 50 })}
                 </div>
               )}
             </div>
@@ -460,13 +462,13 @@ export function FilterEditor({ filter, onClose }: FilterEditorProps) {
         </div>
 
         <div className="filter-editor-footer">
-          <button className="filter-editor-cancel" onClick={onClose}>취소</button>
+          <button className="filter-editor-cancel" onClick={onClose}>{t("filterEditor.cancel")}</button>
           <button
             className="filter-editor-save"
             onClick={handleSave}
             disabled={!name.trim()}
           >
-            {filter ? "저장" : "추가"}
+            {filter ? t("filterEditor.save") : t("filterEditor.add")}
           </button>
         </div>
       </div>
