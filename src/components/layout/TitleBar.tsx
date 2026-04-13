@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Moon, Sun, LogOut, Pin, PinOff, RefreshCw, ChevronDown, Globe, Languages, FilePlus } from "lucide-react";
+import { Moon, Sun, LogOut, Pin, PinOff, RefreshCw, ChevronDown, Globe, Languages } from "lucide-react";
 import { useSettingsStore, POLL_INTERVAL_OPTIONS } from "../../stores/settingsStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useIssueStore } from "../../stores/issueStore";
@@ -11,7 +11,7 @@ import "./TitleBar.css";
 export function TitleBar() {
   const { theme, toggleTheme, pollIntervalMs, setPollInterval, toggleLanguage } = useSettingsStore();
   const { isAuthenticated, currentUser, logout, baseUrl } = useAuthStore();
-  const { fetchAllViews, isLoading, openCreateModal } = useIssueStore();
+  const { fetchAllViews, isLoading } = useIssueStore();
   const { t } = useTranslation();
   const appWindow = getCurrentWindow();
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(true);
@@ -55,13 +55,6 @@ export function TitleBar() {
               title={t("titlebar.openRedmine")}
             >
               <Globe size={14} />
-            </button>
-            <button
-              className="titlebar-btn titlebar-new-issue-btn"
-              onClick={openCreateModal}
-              title={t("titlebar.newIssue")}
-            >
-              <FilePlus size={14} />
             </button>
             <button
               className={`titlebar-btn titlebar-refresh-btn ${isLoading ? "titlebar-refreshing" : ""}`}

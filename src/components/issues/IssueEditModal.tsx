@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useIssueStore } from "../../stores/issueStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useTranslation } from "../../lib/i18n";
+import { SearchableSelect } from "./FilterEditor";
 import type {
   RedmineIssueStatus,
   RedmineIssuePriority,
@@ -12,8 +13,14 @@ import type {
 } from "../../types/redmine";
 import "./IssueEditModal.css";
 
+function stripHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+}
+
 export function IssueEditModal() {
   const { isCreateModalOpen, editingIssueId, closeEditModal, createIssue, updateIssue, selectedIssue, statusMap } = useIssueStore();
+  const allVisibleIssues = useIssueStore((s) => s.allVisibleIssues);
   const { client } = useAuthStore();
   const { t } = useTranslation();
 
@@ -50,6 +57,7 @@ export function IssueEditModal() {
     if (!isCreateModalOpen || !client) return;
 
     setError(null);
+    setIsSaving(false);
     setIsLoadingData(true);
 
     const load = async () => {
@@ -69,7 +77,7 @@ export function IssueEditModal() {
           setProjectId(String(issue.project.id));
           setTrackerId(String(issue.tracker.id));
           setSubject(issue.subject);
-          setDescription(issue.description ?? "");
+          setDescription(stripHtml(issue.description ?? ""));
           setStatusId(String(issue.status.id));
           setPriorityId(String(issue.priority.id));
           setAssigneeId(issue.assigned_to ? String(issue.assigned_to.id) : "");
@@ -79,6 +87,10 @@ export function IssueEditModal() {
 
           // 프로젝트 멤버 로드
           const fetchedMembers = await client.getProjectMembers(issue.project.id);
+          // 현재 담당자가 멤버 목록에 없으면 추가 (그룹 멤버십 등으로 누락 가능)
+          if (issue.assigned_to && !fetchedMembers.some((m) => m.user.id === issue.assigned_to!.id)) {
+            fetchedMembers.push({ id: 0, user: issue.assigned_to });
+          }
           setMembers(fetchedMembers);
         } else {
           // 생성 모드: 기본값
@@ -121,6 +133,20 @@ export function IssueEditModal() {
       .then(setMembers)
       .catch(() => setMembers([]));
   }, [projectId, isCreateModalOpen, isEdit]);
+
+  // 담당자 옵션: 프로젝트 멤버 + allVisibleIssues의 담당자(권한/그룹 멤버십 등으로 API 누락 대비) 병합
+  const assigneeOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of members) {
+      map.set(String(m.user.id), m.user.name);
+    }
+    for (const iss of allVisibleIssues) {
+      if (iss.assigned_to && !map.has(String(iss.assigned_to.id))) {
+        map.set(String(iss.assigned_to.id), iss.assigned_to.name);
+      }
+    }
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+  }, [members, allVisibleIssues]);
 
   const handleClose = () => {
     if (isSaving) return;
@@ -281,16 +307,14 @@ export function IssueEditModal() {
               {/* 담당자 */}
               <div className="issue-edit-field">
                 <label className="issue-edit-label">{t("issueEdit.assignee")}</label>
-                <select
-                  className="issue-edit-select"
+                <SearchableSelect
+                  options={assigneeOptions}
                   value={assigneeId}
-                  onChange={(e) => setAssigneeId(e.target.value)}
-                >
-                  <option value="">{t("issueEdit.unassigned")}</option>
-                  {members.map((m) => (
-                    <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
-                  ))}
-                </select>
+                  onChange={setAssigneeId}
+                  placeholder={t("issueEdit.unassigned")}
+                  searchPlaceholder={t("filterEditor.search")}
+                  noResultsText={t("filterEditor.noResults")}
+                />
               </div>
 
               {/* 시작일 + 완료예정일 */}

@@ -67,7 +67,7 @@ src/
     variables.css - CSS custom properties (light/dark 테마 변수)
     global.css    - 글로벌 스타일
   components/
-    layout/   - TitleBar (custom decorations, drag region, 최대화 토글, 새로고침/polling 간격), BottomBar (개인 작업/섹션 추가)
+    layout/   - TitleBar (custom decorations, drag region, 최대화 토글, 새로고침/polling 간격), BottomBar (새 일감/개인 작업/섹션 추가)
     auth/     - LoginForm (URL + API Key)
     common/   - LoadingSpinner, ImageViewer (확대/축소/드래그)
     issues/   - IssueList, IssueItem, IssueDetail (수정 버튼 + 댓글 입력폼 포함), ProgressBar, SortControls, PriorityBadge,
@@ -77,9 +77,9 @@ src/
 
 ## Key Design Decisions
 
-- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R. TitleBar는 커스텀 드래그 영역 + 앱 기능 버튼(레드마인 웹 열기, 새 일감, 새로고침, 폴링 간격, 로그아웃, 테마, 언어 토글, 항상위) 포함
+- **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R. TitleBar는 커스텀 드래그 영역 + 앱 기능 버튼(레드마인 웹 열기, 새로고침, 폴링 간격, 로그아웃, 테마, 언어 토글, 항상위) 포함
 - **다국어(i18n)**: 영어(en, 기본값)/한국어(ko) 지원. `settingsStore.language`로 관리, `localStorage`에 저장. TitleBar의 Languages 아이콘으로 토글. `useTranslation()` hook으로 컴포넌트에서 사용
-- **일감 등록/수정**: IssueEditModal 컴포넌트. TitleBar의 FilePlus 버튼(새 일감) 또는 IssueDetail의 수정 버튼으로 열림. 프로젝트/트래커/상태/우선순위/담당자 등 선택 가능. 프로젝트 멤버는 `/projects/{id}/memberships.json`으로 조회
+- **일감 등록/수정**: IssueEditModal 컴포넌트. BottomBar의 FilePlus 버튼(새 일감) 또는 IssueDetail의 수정 버튼으로 열림. 프로젝트/트래커/상태/우선순위/담당자 등 선택 가능. 프로젝트 멤버는 `/projects/{id}/memberships.json`으로 조회. 수정 모드에서 description은 `stripHtml()`로 HTML 태그 제거 후 표시. 담당자가 그룹 멤버십 등으로 memberships API에 없을 경우 현재 담당자를 멤버 목록에 추가. 담당자 필드는 `FilterEditor`에서 export한 `SearchableSelect`를 재사용하여 검색 가능. 담당자 옵션은 `project members + allVisibleIssues의 assigned_to`를 병합하여 memberships API가 비어있어도 기존 담당자들로 fallback
 - **댓글**: IssueDetail 하단의 textarea에서 입력 후 등록. PUT /issues/{id}.json에 notes 필드로 전송
 - **외부 링크**: `tauri-plugin-opener`의 `openUrl()`으로 시스템 기본 브라우저 열기. TitleBar에 레드마인 홈 버튼(Globe), IssueDetail 헤더에 해당 일감 웹 URL 버튼(ExternalLink)
 - **인증**: Redmine API Key만 사용. `tauri-plugin-store`로 앱 데이터 디렉토리에 저장

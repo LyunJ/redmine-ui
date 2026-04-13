@@ -130,6 +130,7 @@ const ko: Record<string, string> = {
   "ptDetail.taskNamePlaceholder": "작업명을 입력하세요",
 
   // BottomBar
+  "bottombar.addIssue": "새 일감",
   "bottombar.addTask": "개인 작업 추가",
   "bottombar.addSection": "섹션 추가",
 
@@ -295,6 +296,7 @@ const en: Record<string, string> = {
   "ptDetail.taskNamePlaceholder": "Enter task name",
 
   // BottomBar
+  "bottombar.addIssue": "New Issue",
   "bottombar.addTask": "Add Personal Task",
   "bottombar.addSection": "Add Section",
 

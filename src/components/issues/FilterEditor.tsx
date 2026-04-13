@@ -21,7 +21,7 @@ interface SearchableSelectProps {
   noResultsText?: string;
 }
 
-function SearchableSelect({ options, value, onChange, placeholder = "Select", searchPlaceholder = "Search...", noResultsText = "No results" }: SearchableSelectProps) {
+export function SearchableSelect({ options, value, onChange, placeholder = "Select", searchPlaceholder = "Search...", noResultsText = "No results" }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
