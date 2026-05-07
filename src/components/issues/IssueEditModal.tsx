@@ -4,18 +4,147 @@ import { useIssueStore } from "../../stores/issueStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useTranslation } from "../../lib/i18n";
 import { SearchableSelect } from "./FilterEditor";
+import { MarkupEditor } from "../common/MarkupEditor";
 import type {
   RedmineIssueStatus,
   RedmineIssuePriority,
   RedmineProject,
   RedmineTracker,
   RedmineMember,
+  RedmineCustomFieldDef,
 } from "../../types/redmine";
 import "./IssueEditModal.css";
 
-function stripHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.textContent || "";
+function renderCustomFieldInput(
+  def: RedmineCustomFieldDef,
+  value: string | string[] | undefined,
+  onChange: (val: string | string[]) => void,
+  assigneeOptions?: Array<{ value: string; label: string }>,
+): React.ReactNode {
+  const strValue = Array.isArray(value) ? "" : (value ?? "");
+  const arrValue = Array.isArray(value) ? value : (value ? [value] : []);
+
+  switch (def.field_format) {
+    case "date":
+      return (
+        <input
+          className="issue-edit-input"
+          type="date"
+          value={strValue}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+    case "bool":
+      return (
+        <div className="issue-edit-bool-field">
+          <input
+            type="checkbox"
+            checked={strValue === "1"}
+            onChange={(e) => onChange(e.target.checked ? "1" : "0")}
+            id={`cf-bool-${def.id}`}
+          />
+          <label htmlFor={`cf-bool-${def.id}`}>{def.name}</label>
+        </div>
+      );
+    case "int":
+      return (
+        <input
+          className="issue-edit-input"
+          type="number"
+          step="1"
+          value={strValue}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+    case "float":
+      return (
+        <input
+          className="issue-edit-input"
+          type="number"
+          step="any"
+          value={strValue}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+    case "text":
+      return (
+        <textarea
+          className="issue-edit-textarea"
+          value={strValue}
+          onChange={(e) => onChange(e.target.value)}
+          rows={3}
+        />
+      );
+    case "list":
+      if (def.multiple) {
+        return (
+          <div className="issue-edit-multi-check">
+            {(def.possible_values ?? []).map((pv) => (
+              <label key={pv.value} className="issue-edit-check-item">
+                <input
+                  type="checkbox"
+                  checked={arrValue.includes(pv.value)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...arrValue, pv.value]
+                      : arrValue.filter((v) => v !== pv.value);
+                    onChange(next);
+                  }}
+                />
+                {pv.value}
+              </label>
+            ))}
+          </div>
+        );
+      }
+      return (
+        <select
+          className="issue-edit-select"
+          value={strValue}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="">-</option>
+          {(def.possible_values ?? []).map((pv) => (
+            <option key={pv.value} value={pv.value}>{pv.value}</option>
+          ))}
+        </select>
+      );
+    case "user":
+      if (def.multiple) {
+        return (
+          <select
+            className="issue-edit-select"
+            multiple
+            value={arrValue}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
+              onChange(selected);
+            }}
+          >
+            {(assigneeOptions ?? []).map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        );
+      }
+      return (
+        <SearchableSelect
+          options={assigneeOptions ?? []}
+          value={strValue}
+          onChange={(v) => onChange(v)}
+          placeholder="-"
+        />
+      );
+    default:
+      return (
+        <input
+          className="issue-edit-input"
+          type="text"
+          value={strValue}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+  }
 }
 
 export function IssueEditModal() {
@@ -46,6 +175,10 @@ export function IssueEditModal() {
   const [statuses, setStatuses] = useState<RedmineIssueStatus[]>([]);
   const [members, setMembers] = useState<RedmineMember[]>([]);
 
+  // Custom fields
+  const [customFieldDefs, setCustomFieldDefs] = useState<RedmineCustomFieldDef[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, string | string[]>>({});
+
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,22 +195,26 @@ export function IssueEditModal() {
 
     const load = async () => {
       try {
-        const [fetchedProjects, fetchedTrackers, fetchedPriorities] = await Promise.all([
+        const [fetchedProjects, fetchedTrackers, fetchedPriorities, fetchedCustomFieldDefs] = await Promise.all([
           client.getProjects(),
           client.getTrackers(),
           client.getIssuePriorities(),
+          client.getCustomFieldDefs(),
         ]);
         setProjects(fetchedProjects);
         setTrackers(fetchedTrackers);
         setPriorities(fetchedPriorities);
         setStatuses(statusMap);
+        setCustomFieldDefs(fetchedCustomFieldDefs);
+
+        const cfValues: Record<number, string | string[]> = {};
 
         if (isEdit && issue) {
           // 수정 모드: 기존 값으로 채우기
           setProjectId(String(issue.project.id));
           setTrackerId(String(issue.tracker.id));
           setSubject(issue.subject);
-          setDescription(stripHtml(issue.description ?? ""));
+          setDescription(issue.description ?? "");
           setStatusId(String(issue.status.id));
           setPriorityId(String(issue.priority.id));
           setAssigneeId(issue.assigned_to ? String(issue.assigned_to.id) : "");
@@ -87,11 +224,15 @@ export function IssueEditModal() {
 
           // 프로젝트 멤버 로드
           const fetchedMembers = await client.getProjectMembers(issue.project.id);
-          // 현재 담당자가 멤버 목록에 없으면 추가 (그룹 멤버십 등으로 누락 가능)
           if (issue.assigned_to && !fetchedMembers.some((m) => m.user.id === issue.assigned_to!.id)) {
             fetchedMembers.push({ id: 0, user: issue.assigned_to });
           }
           setMembers(fetchedMembers);
+
+          // 기존 커스텀 필드 값
+          for (const cf of (issue.custom_fields ?? [])) {
+            cfValues[cf.id] = cf.value ?? "";
+          }
         } else {
           // 생성 모드: 기본값
           setSubject("");
@@ -102,7 +243,6 @@ export function IssueEditModal() {
           setAssigneeId("");
           setMembers([]);
 
-          // 첫 번째 프로젝트/트래커/우선순위를 기본값으로
           if (fetchedProjects.length > 0) setProjectId(String(fetchedProjects[0].id));
           if (fetchedTrackers.length > 0) setTrackerId(String(fetchedTrackers[0].id));
           if (fetchedPriorities.length > 0) {
@@ -114,7 +254,20 @@ export function IssueEditModal() {
             return n === "new" || n === "신규";
           }) ?? statusMap[0];
           if (openStatus) setStatusId(String(openStatus.id));
+
+          // 커스텀 필드 기본값
+          for (const def of fetchedCustomFieldDefs) {
+            if (def.default_value) {
+              cfValues[def.id] = def.default_value;
+            } else if (def.field_format === "bool") {
+              cfValues[def.id] = "0";
+            } else if (def.multiple) {
+              cfValues[def.id] = [];
+            }
+          }
         }
+
+        setCustomFieldValues(cfValues);
       } catch (e) {
         setError(String(e));
       } finally {
@@ -134,7 +287,7 @@ export function IssueEditModal() {
       .catch(() => setMembers([]));
   }, [projectId, isCreateModalOpen, isEdit]);
 
-  // 담당자 옵션: 프로젝트 멤버 + allVisibleIssues의 담당자(권한/그룹 멤버십 등으로 API 누락 대비) 병합
+  // 담당자 옵션: 프로젝트 멤버 + allVisibleIssues의 담당자 병합
   const assigneeOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const m of members) {
@@ -148,6 +301,49 @@ export function IssueEditModal() {
     return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
   }, [members, allVisibleIssues]);
 
+  // 현재 트래커/프로젝트에 적용되는 커스텀 필드
+  const visibleCustomFields = useMemo((): RedmineCustomFieldDef[] => {
+    const numTrackerId = Number(trackerId);
+    const numProjectId = Number(projectId);
+
+    let defs: RedmineCustomFieldDef[];
+
+    if (customFieldDefs.length > 0) {
+      defs = customFieldDefs;
+    } else {
+      // /custom_fields.json 접근 불가 시 기존 이슈 데이터에서 파생
+      const sourceIssue = issue ?? allVisibleIssues.find((i) => (i.custom_fields?.length ?? 0) > 0);
+      defs = (sourceIssue?.custom_fields ?? []).map((cf) => ({
+        id: cf.id,
+        name: cf.name,
+        customized_type: "issue",
+        field_format: "string",
+        is_required: false,
+        multiple: false,
+        default_value: null,
+        possible_values: [],
+        tracker_ids: [],
+        project_ids: [],
+      }));
+    }
+
+    return defs.filter((def) => {
+      const tids = def.tracker_ids ?? [];
+      const pids = def.project_ids ?? [];
+      if (tids.length > 0 && numTrackerId > 0 && !tids.includes(numTrackerId)) return false;
+      if (pids.length > 0 && numProjectId > 0 && !pids.includes(numProjectId)) return false;
+      return true;
+    });
+  }, [customFieldDefs, trackerId, projectId, issue, allVisibleIssues]);
+
+  const hasRequiredCustomFieldEmpty = visibleCustomFields.some((def) => {
+    if (!def.is_required) return false;
+    if (def.field_format === "bool") return false;
+    const val = customFieldValues[def.id];
+    if (def.multiple) return !val || (Array.isArray(val) && val.length === 0);
+    return !val || val === "";
+  });
+
   const handleClose = () => {
     if (isSaving) return;
     closeEditModal();
@@ -157,6 +353,17 @@ export function IssueEditModal() {
     e.preventDefault();
     if (!subject.trim() || !projectId || !trackerId) return;
 
+    const descBody = description.trim() || undefined;
+
+    const customFieldsPayload = visibleCustomFields.length > 0
+      ? visibleCustomFields.map((def) => ({
+          id: def.id,
+          value: customFieldValues[def.id] !== undefined
+            ? customFieldValues[def.id]
+            : (def.multiple ? [] : ""),
+        }))
+      : undefined;
+
     setIsSaving(true);
     setError(null);
 
@@ -164,26 +371,28 @@ export function IssueEditModal() {
       if (isEdit && editingIssueId !== null) {
         await updateIssue(editingIssueId, {
           subject: subject.trim(),
-          description: description.trim() || undefined,
+          description: descBody,
           status_id: statusId ? Number(statusId) : undefined,
           priority_id: priorityId ? Number(priorityId) : undefined,
           assigned_to_id: assigneeId ? Number(assigneeId) : null,
           start_date: startDate || undefined,
           due_date: dueDate || undefined,
           done_ratio: doneRatio !== "" ? Number(doneRatio) : undefined,
+          custom_fields: customFieldsPayload,
         });
       } else {
         await createIssue({
           project_id: Number(projectId),
           tracker_id: Number(trackerId),
           subject: subject.trim(),
-          description: description.trim() || undefined,
+          description: descBody,
           status_id: statusId ? Number(statusId) : undefined,
           priority_id: priorityId ? Number(priorityId) : undefined,
           assigned_to_id: assigneeId ? Number(assigneeId) : undefined,
           start_date: startDate || undefined,
           due_date: dueDate || undefined,
           done_ratio: doneRatio !== "" ? Number(doneRatio) : undefined,
+          custom_fields: customFieldsPayload,
         });
       }
       closeEditModal();
@@ -265,12 +474,10 @@ export function IssueEditModal() {
               {/* 설명 */}
               <div className="issue-edit-field">
                 <label className="issue-edit-label">{t("issueEdit.description")}</label>
-                <textarea
-                  className="issue-edit-textarea"
+                <MarkupEditor
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                   placeholder={t("issueEdit.descriptionPlaceholder")}
-                  rows={4}
                 />
               </div>
 
@@ -353,6 +560,37 @@ export function IssueEditModal() {
                 />
               </div>
 
+              {/* 커스텀 필드 */}
+              {visibleCustomFields
+                .filter((def) => def.field_format !== "bool")
+                .map((def) => (
+                  <div key={def.id} className="issue-edit-field">
+                    <label className="issue-edit-label">
+                      {def.name}{def.is_required ? " *" : ""}
+                    </label>
+                    {renderCustomFieldInput(
+                      def,
+                      customFieldValues[def.id],
+                      (val) => setCustomFieldValues((prev) => ({ ...prev, [def.id]: val })),
+                      assigneeOptions,
+                    )}
+                  </div>
+                ))}
+
+              {/* bool 타입 커스텀 필드 */}
+              {visibleCustomFields
+                .filter((def) => def.field_format === "bool")
+                .map((def) => (
+                  <div key={def.id} className="issue-edit-field">
+                    {renderCustomFieldInput(
+                      def,
+                      customFieldValues[def.id],
+                      (val) => setCustomFieldValues((prev) => ({ ...prev, [def.id]: val })),
+                      assigneeOptions,
+                    )}
+                  </div>
+                ))}
+
               {error && <div className="issue-edit-error">{error}</div>}
             </div>
 
@@ -368,7 +606,7 @@ export function IssueEditModal() {
               <button
                 type="submit"
                 className="issue-edit-btn issue-edit-btn-submit"
-                disabled={isSaving || !subject.trim() || !projectId || !trackerId}
+                disabled={isSaving || !subject.trim() || !projectId || !trackerId || hasRequiredCustomFieldEmpty}
               >
                 {isSaving ? (
                   <><Loader2 size={13} className="spin" /> {t("issueEdit.saving")}</>
