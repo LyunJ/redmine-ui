@@ -311,13 +311,31 @@ export function IssueEditModal() {
     if (customFieldDefs.length > 0) {
       defs = customFieldDefs;
     } else {
-      // /custom_fields.json 접근 불가 시 기존 이슈 데이터에서 파생
+      // /custom_fields.json 접근 불가(비관리자)시 이슈 데이터에서 파생
+      // 알려진 유저 ID 집합으로 user 타입 필드 추론
+      const knownUserIds = new Set<string>();
+      for (const m of members) knownUserIds.add(String(m.user.id));
+      for (const iss of allVisibleIssues) {
+        if (iss.assigned_to) knownUserIds.add(String(iss.assigned_to.id));
+      }
+
+      // 가시 이슈 전체 + 현재 이슈에서 각 필드 값이 유저 ID인지 확인
+      const fieldIsUser = new Map<number, boolean>();
+      const scanIssues = issue ? [...allVisibleIssues, issue] : allVisibleIssues;
+      for (const iss of scanIssues) {
+        for (const cf of (iss.custom_fields ?? [])) {
+          if (fieldIsUser.has(cf.id)) continue;
+          const val = String(cf.value ?? "");
+          if (val && knownUserIds.has(val)) fieldIsUser.set(cf.id, true);
+        }
+      }
+
       const sourceIssue = issue ?? allVisibleIssues.find((i) => (i.custom_fields?.length ?? 0) > 0);
       defs = (sourceIssue?.custom_fields ?? []).map((cf) => ({
         id: cf.id,
         name: cf.name,
         customized_type: "issue",
-        field_format: "string",
+        field_format: fieldIsUser.get(cf.id) ? "user" : "string",
         is_required: false,
         multiple: false,
         default_value: null,
@@ -334,7 +352,7 @@ export function IssueEditModal() {
       if (pids.length > 0 && numProjectId > 0 && !pids.includes(numProjectId)) return false;
       return true;
     });
-  }, [customFieldDefs, trackerId, projectId, issue, allVisibleIssues]);
+  }, [customFieldDefs, trackerId, projectId, issue, allVisibleIssues, members]);
 
   const hasRequiredCustomFieldEmpty = visibleCustomFields.some((def) => {
     if (!def.is_required) return false;
