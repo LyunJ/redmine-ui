@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, AlertTriangle, Pin } from "lucide-react";
 import { useIssueStore } from "../../stores/issueStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useTranslation } from "../../lib/i18n";
 import { SearchableSelect } from "./FilterEditor";
 import { MarkupEditor } from "../common/MarkupEditor";
+import { RedmineApiError } from "../../lib/redmineClient";
 import type {
   RedmineIssueStatus,
   RedmineIssuePriority,
@@ -15,11 +16,23 @@ import type {
 } from "../../types/redmine";
 import "./IssueEditModal.css";
 
+const PINNED_CF_KEY = "redmine_pinned_cf_ids";
+
+function getPinnedCFIds(): number[] {
+  try { return JSON.parse(localStorage.getItem(PINNED_CF_KEY) ?? "[]"); }
+  catch { return []; }
+}
+
+function savePinnedCFIds(ids: number[]): void {
+  localStorage.setItem(PINNED_CF_KEY, JSON.stringify(ids));
+}
+
 function renderCustomFieldInput(
   def: RedmineCustomFieldDef,
   value: string | string[] | undefined,
   onChange: (val: string | string[]) => void,
   assigneeOptions?: Array<{ value: string; label: string }>,
+  warningNode?: React.ReactNode,
 ): React.ReactNode {
   const strValue = Array.isArray(value) ? "" : (value ?? "");
   const arrValue = Array.isArray(value) ? value : (value ? [value] : []);
@@ -44,6 +57,7 @@ function renderCustomFieldInput(
             id={`cf-bool-${def.id}`}
           />
           <label htmlFor={`cf-bool-${def.id}`}>{def.name}</label>
+          {warningNode}
         </div>
       );
     case "int":
@@ -182,6 +196,8 @@ export function IssueEditModal() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pinnedCustomFieldIds, setPinnedCustomFieldIds] = useState<number[]>(() => getPinnedCFIds());
+  const [missingHiddenFields, setMissingHiddenFields] = useState<RedmineCustomFieldDef[]>([]);
 
   const subjectRef = useRef<HTMLInputElement>(null);
 
@@ -192,6 +208,7 @@ export function IssueEditModal() {
     setError(null);
     setIsSaving(false);
     setIsLoadingData(true);
+    setMissingHiddenFields([]);
 
     const load = async () => {
       try {
@@ -345,14 +362,25 @@ export function IssueEditModal() {
       }));
     }
 
-    return defs.filter((def) => {
+    const filtered = defs.filter((def) => {
       const tids = def.tracker_ids ?? [];
       const pids = def.project_ids ?? [];
       if (tids.length > 0 && numTrackerId > 0 && !tids.includes(numTrackerId)) return false;
       if (pids.length > 0 && numProjectId > 0 && !pids.includes(numProjectId)) return false;
       return true;
     });
-  }, [customFieldDefs, trackerId, projectId, issue, allVisibleIssues, members]);
+
+    // 핀된 필드 중 필터에서 제외된 것을 강제 포함
+    const filteredIdSet = new Set(filtered.map((d) => d.id));
+    for (const id of pinnedCustomFieldIds) {
+      if (!filteredIdSet.has(id)) {
+        const def = defs.find((d) => d.id === id);
+        if (def) filtered.push(def);
+      }
+    }
+
+    return filtered;
+  }, [customFieldDefs, trackerId, projectId, issue, allVisibleIssues, members, pinnedCustomFieldIds]);
 
   const hasRequiredCustomFieldEmpty = visibleCustomFields.some((def) => {
     if (!def.is_required) return false;
@@ -415,9 +443,34 @@ export function IssueEditModal() {
       }
       closeEditModal();
     } catch (e) {
-      setError(String(e));
+      if (e instanceof RedmineApiError) {
+        if (customFieldDefs.length > 0 && e.errors.length > 0) {
+          const hidden = customFieldDefs.filter(
+            (def) =>
+              !visibleCustomFields.some((v) => v.id === def.id) &&
+              e.errors.some((err) => err.includes(def.name)),
+          );
+          if (hidden.length > 0) setMissingHiddenFields(hidden);
+        }
+        setError(e.errors.length > 0 ? e.errors.join("\n") : String(e));
+      } else {
+        setError(String(e));
+      }
       setIsSaving(false);
     }
+  };
+
+  const handlePinField = (id: number) => {
+    const next = [...pinnedCustomFieldIds, id];
+    setPinnedCustomFieldIds(next);
+    savePinnedCFIds(next);
+    setMissingHiddenFields((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const handleUnpinField = (id: number) => {
+    const next = pinnedCustomFieldIds.filter((i) => i !== id);
+    setPinnedCustomFieldIds(next);
+    savePinnedCFIds(next);
   };
 
   if (!isCreateModalOpen) return null;
@@ -585,6 +638,20 @@ export function IssueEditModal() {
                   <div key={def.id} className="issue-edit-field">
                     <label className="issue-edit-label">
                       {def.name}{def.is_required ? " *" : ""}
+                      <span className="cf-warning-icon" title={t("issueEdit.customFieldWarning")}>
+                        <AlertTriangle size={11} />
+                        <span className="cf-warning-tooltip">{t("issueEdit.customFieldWarning")}</span>
+                      </span>
+                      {pinnedCustomFieldIds.includes(def.id) && (
+                        <button
+                          type="button"
+                          className="cf-unpin-btn"
+                          title={t("issueEdit.unpinField")}
+                          onClick={() => handleUnpinField(def.id)}
+                        >
+                          <Pin size={11} />
+                        </button>
+                      )}
                     </label>
                     {renderCustomFieldInput(
                       def,
@@ -605,9 +672,45 @@ export function IssueEditModal() {
                       customFieldValues[def.id],
                       (val) => setCustomFieldValues((prev) => ({ ...prev, [def.id]: val })),
                       assigneeOptions,
+                      <>
+                        <span className="cf-warning-icon" title={t("issueEdit.customFieldWarning")}>
+                          <AlertTriangle size={11} />
+                          <span className="cf-warning-tooltip">{t("issueEdit.customFieldWarning")}</span>
+                        </span>
+                        {pinnedCustomFieldIds.includes(def.id) && (
+                          <button
+                            type="button"
+                            className="cf-unpin-btn"
+                            title={t("issueEdit.unpinField")}
+                            onClick={() => handleUnpinField(def.id)}
+                          >
+                            <Pin size={11} />
+                          </button>
+                        )}
+                      </>,
                     )}
                   </div>
                 ))}
+
+              {/* 누락된 필수 커스텀 필드 배너 */}
+              {missingHiddenFields.length > 0 && (
+                <div className="cf-missing-banner">
+                  <p className="cf-missing-banner-msg">{t("issueEdit.missingFieldsBanner")}</p>
+                  {missingHiddenFields.map((def) => (
+                    <div key={def.id} className="cf-missing-item">
+                      <span className="cf-missing-name">{def.name}</span>
+                      <button
+                        type="button"
+                        className="cf-pin-action-btn"
+                        onClick={() => handlePinField(def.id)}
+                      >
+                        <Pin size={11} />
+                        {t("issueEdit.pinField")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {error && <div className="issue-edit-error">{error}</div>}
             </div>

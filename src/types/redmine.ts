@@ -17,6 +17,23 @@ export interface RedmineCustomField {
   value: string | string[] | null;
 }
 
+export interface RedmineCustomFieldDef {
+  id: number;
+  name: string;
+  customized_type: string;
+  field_format: string;
+  is_required: boolean;
+  multiple: boolean;
+  default_value: string | null;
+  possible_values?: Array<{ value: string }>;
+  tracker_ids?: number[];
+  project_ids?: number[];
+}
+
+export interface CustomFieldsResponse {
+  custom_fields: RedmineCustomFieldDef[];
+}
+
 export interface RedmineIssue {
   id: number;
   subject: string;
@@ -131,6 +148,7 @@ export interface IssueCreatePayload {
   start_date?: string;
   due_date?: string;
   done_ratio?: number;
+  custom_fields?: Array<{ id: number; value: string | string[] | null }>;
 }
 
 export interface IssueUpdatePayload {
@@ -143,4 +161,5 @@ export interface IssueUpdatePayload {
   due_date?: string;
   done_ratio?: number;
   notes?: string;
+  custom_fields?: Array<{ id: number; value: string | string[] | null }>;
 }

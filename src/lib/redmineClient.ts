@@ -1,6 +1,7 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import type {
   CurrentUserResponse,
+  CustomFieldsResponse,
   IssueCreatePayload,
   IssueDetailResponse,
   IssuePrioritiesResponse,
@@ -9,6 +10,7 @@ import type {
   IssueStatusesResponse,
   MembershipsResponse,
   ProjectsResponse,
+  RedmineCustomFieldDef,
   RedmineIssue,
   RedmineIssueDetail,
   RedmineIssueStatus,
@@ -19,6 +21,16 @@ import type {
   RedmineUser,
   TrackersResponse,
 } from "../types/redmine";
+
+export class RedmineApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly errors: string[],
+    raw: string,
+  ) {
+    super(`Redmine API error: ${status} ${raw}`);
+  }
+}
 
 export class RedmineClient {
   constructor(
@@ -65,7 +77,12 @@ export class RedmineClient {
     });
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      throw new Error(`Redmine API error: ${response.status} ${text}`);
+      let errors: string[] = [];
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed.errors)) errors = parsed.errors;
+      } catch {}
+      throw new RedmineApiError(response.status, errors, text);
     }
     // PUT /issues/{id}.json returns 200 with no body; POST returns 201 with body
     if (response.status === 204 || response.headers.get("content-length") === "0") {
@@ -122,6 +139,15 @@ export class RedmineClient {
       "/enumerations/issue_priorities.json",
     );
     return data.issue_priorities;
+  }
+
+  async getCustomFieldDefs(): Promise<RedmineCustomFieldDef[]> {
+    try {
+      const data = await this.request<CustomFieldsResponse>("/custom_fields.json");
+      return data.custom_fields.filter((f) => f.customized_type === "issue");
+    } catch {
+      return [];
+    }
   }
 
   async getMyIssues(statusIds: number[]): Promise<RedmineIssue[]> {

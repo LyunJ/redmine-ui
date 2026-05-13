@@ -69,7 +69,7 @@ src/
   components/
     layout/   - TitleBar (custom decorations, drag region, 최대화 토글, 새로고침/polling 간격), BottomBar (새 일감/개인 작업/섹션 추가)
     auth/     - LoginForm (URL + API Key)
-    common/   - LoadingSpinner, ImageViewer (확대/축소/드래그)
+    common/   - LoadingSpinner, ImageViewer (확대/축소/드래그), MarkupEditor (Textile 툴바 + 프리뷰 텍스트 에디터)
     issues/   - IssueList, IssueItem, IssueDetail (수정 버튼 + 댓글 입력폼 포함), ProgressBar, SortControls, PriorityBadge,
                 ViewTabs, FilterBar, FilterEditor, TodoView, AddTaskModal, CalendarButton, PersonalTaskItem, PersonalTaskDetail,
                 IssueEditModal (일감 등록/수정 모달)
@@ -79,7 +79,21 @@ src/
 
 - **Window**: decorations:false + alwaysOnTop(토글 가능). 닫기(X) 버튼은 앱 종료. 창 숨기기는 tray 좌클릭 또는 Ctrl+Shift+R. TitleBar는 커스텀 드래그 영역 + 앱 기능 버튼(레드마인 웹 열기, 새로고침, 폴링 간격, 로그아웃, 테마, 언어 토글, 항상위) 포함
 - **다국어(i18n)**: 영어(en, 기본값)/한국어(ko) 지원. `settingsStore.language`로 관리, `localStorage`에 저장. TitleBar의 Languages 아이콘으로 토글. `useTranslation()` hook으로 컴포넌트에서 사용
-- **일감 등록/수정**: IssueEditModal 컴포넌트. BottomBar의 FilePlus 버튼(새 일감) 또는 IssueDetail의 수정 버튼으로 열림. 프로젝트/트래커/상태/우선순위/담당자 등 선택 가능. 프로젝트 멤버는 `/projects/{id}/memberships.json`으로 조회. 수정 모드에서 description은 `stripHtml()`로 HTML 태그 제거 후 표시. 담당자가 그룹 멤버십 등으로 memberships API에 없을 경우 현재 담당자를 멤버 목록에 추가. 담당자 필드는 `FilterEditor`에서 export한 `SearchableSelect`를 재사용하여 검색 가능. 담당자 옵션은 `project members + allVisibleIssues의 assigned_to`를 병합하여 memberships API가 비어있어도 기존 담당자들로 fallback
+- **일감 등록/수정**: IssueEditModal 컴포넌트. BottomBar의 FilePlus 버튼(새 일감) 또는 IssueDetail의 수정 버튼으로 열림. 프로젝트/트래커/상태/우선순위/담당자 등 선택 가능. 프로젝트 멤버는 `/projects/{id}/memberships.json`으로 조회. 수정 모드에서 description은 API가 반환하는 원본 source(Textile/Markdown)를 그대로 노출하여 편집한다 — Redmine 웹 편집 화면과 동일한 동작. (이전에는 `stripHtml()`로 태그를 제거했으나 Textile 소스에 섞인 HTML 태그까지 지우면서 테이블 등 구조가 파괴되어 제거됨). 담당자가 그룹 멤버십 등으로 memberships API에 없을 경우 현재 담당자를 멤버 목록에 추가. 담당자 필드는 `FilterEditor`에서 export한 `SearchableSelect`를 재사용하여 검색 가능. 담당자 옵션은 `project members + allVisibleIssues의 assigned_to`를 병합하여 memberships API가 비어있어도 기존 담당자들로 fallback
+- **MarkupEditor**: `common/MarkupEditor.tsx`. description 편집용 **자체 구현 contenteditable WYSIWYG 에디터** (외부 에디터 라이브러리 없음). 사용자는 Textile 태그를 직접 입력하지 않고 서식을 눈으로 보며 편집한다.
+  - **툴바**: 굵게, 기울임, 밑줄, 취소선, 인라인 코드, 제목 드롭다운(Paragraph/H1~H6), 글머리기호/번호매기기 목록, 인용, 코드블록, 링크, 테이블(그리드 피커), 수평선. 커서가 테이블 내부일 때 테이블 컨트롤(행/열 추가·삭제, 정렬, 병합, 헤더 행 토글, 테이블 삭제) 자동 표시
+  - **외부 인터페이스는 Textile 문자열**: `value`/`onChange` 모두 Textile. `IssueEditModal`은 Textile만 주고받으므로 저장 경로와 100% 호환
+  - **내부 변환 파이프라인**:
+    - 로드: `parseRedmineMarkup()`으로 Textile(또는 기존 HTML) → HTML → contenteditable `innerHTML`에 주입
+    - 저장(매 input/변경마다): editor `innerHTML` → `htmlToTextile()` (`src/lib/htmlToTextile.ts`) → `onChange()`
+  - **외부 value 변경 동기화**: `useLayoutEffect`로 value와 `lastEmittedRef`를 비교. 자체 `onChange` 이후 상위가 같은 값으로 다시 내려주면 재주입 스킵. 다른 이슈로 모달 재오픈 시 외부 value가 바뀌면 재주입 (`initializedRef`로 최초 로드 보장)
+  - **Enter 처리**: `beforeinput`의 `insertParagraph`를 가로채 브라우저 기본 동작 대신 직접 블록 분할. 일반 블록은 새 `<p>` 생성(헤딩 뒤 Enter면 새 블록은 `<p>`, 헤딩 연속 생성 방지), 리스트 안이면 새 `<li>`(빈 `<li>`에서 Enter 시 리스트 탈출해 `<p>`로), 테이블 셀/PRE 안이면 `<br>` 삽입. `insertLineBreak`(Shift+Enter)는 항상 `<br>`만 삽입
+  - **Tab 처리**: 리스트 안에서 들여쓰기/내어쓰기(중첩 리스트 depth 변경), 테이블 안에서 다음/이전 셀로 이동(맨 끝에서 Tab은 새 행 추가)
+  - **IME 안전성**: `compositionstart/end`로 `isComposingRef` 추적. 한글 조합 중에는 커스텀 DOM 조작을 스킵하여 자모 분리 방지
+  - **Paste**: `text/plain`만 수용하여 `parseRedmineMarkup()`으로 재파싱 후 삽입. 외부 서식 오염 차단
+  - **테이블**: 셀은 `<td>`/`<th>`. 정렬은 `data-align="left|center|right"` + `class="align-*"`, 병합은 `colspan`/`rowspan` 속성으로 표현. 툴바의 그리드 피커(최대 8×10)로 삽입
+  - **헤딩 범위**: H1~H6 전체 (웹 레드마인 Textile과 동일)
+  - **HTML↔Textile 변환**: `markupParser.ts` (Textile→HTML, 블록 단위 파서)와 `htmlToTextile.ts` (HTML→Textile, DOM walker). 지원: `<strong>/<b>`↔`*`, `<em>/<i>`↔`_`, `<u>`↔`+`, `<s>/<del>/<strike>`↔`-`, `<code>`↔`@`, `<h1-6>`↔`h1-6.`, `<ul>/<ol>` 중첩, `<blockquote>`↔`bq.`, `<pre><code>`↔`<pre>...</pre>` (원문 보존), `<a href>`↔`"text":url`, `<img>`↔`!src!`/`!src(alt)!`, `<hr>`↔`---`, `<br>`↔개행, **테이블**↔`|_. h | | c |` (셀 수정자 `_` 헤더, `<`/`>`/`=` 정렬, `\N` colspan, `/N` rowspan). Textile `bc.` 코드 블록 입력도 지원(파싱 전용)
 - **댓글**: IssueDetail 하단의 textarea에서 입력 후 등록. PUT /issues/{id}.json에 notes 필드로 전송
 - **외부 링크**: `tauri-plugin-opener`의 `openUrl()`으로 시스템 기본 브라우저 열기. TitleBar에 레드마인 홈 버튼(Globe), IssueDetail 헤더에 해당 일감 웹 URL 버튼(ExternalLink)
 - **인증**: Redmine API Key만 사용. `tauri-plugin-store`로 앱 데이터 디렉토리에 저장

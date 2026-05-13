@@ -1,0 +1,317 @@
+.markup-editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  transition: border-color 0.12s;
+}
+
+.markup-editor:focus-within {
+  border-color: var(--accent);
+}
+
+.markup-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.markup-editor-separator {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.markup-editor-btn {
+  height: 24px;
+  min-width: 24px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  transition: background 0.12s, color 0.12s;
+  cursor: pointer;
+}
+
+.markup-editor-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.markup-editor-btn.active {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.markup-editor-btn-text {
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.markup-editor-merge-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: 6px;
+  margin-right: 2px;
+}
+
+/* Dropdown (heading) */
+
+.markup-editor-dropdown {
+  position: relative;
+}
+
+.markup-editor-btn-dropdown {
+  gap: 3px;
+  padding: 0 6px;
+}
+
+.markup-editor-dropdown-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.markup-editor-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.markup-editor-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-primary);
+  text-align: left;
+  width: 100%;
+}
+
+.markup-editor-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.markup-editor-dropdown-item.active {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.markup-editor-dropdown-preview {
+  font-family: inherit;
+}
+
+.preview-p { font-size: 13px; }
+.preview-h1 { font-size: 1.35em; font-weight: 600; }
+.preview-h2 { font-size: 1.2em; font-weight: 600; }
+.preview-h3 { font-size: 1.08em; font-weight: 600; }
+.preview-h4 { font-size: 1em; font-weight: 600; }
+.preview-h5 { font-size: 0.92em; font-weight: 600; }
+.preview-h6 { font-size: 0.85em; font-weight: 600; }
+
+/* Table grid picker */
+
+.markup-editor-grid-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 50;
+}
+
+.markup-editor-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.markup-editor-grid-cell {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background 0.08s, border-color 0.08s;
+}
+
+.markup-editor-grid-cell.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.markup-editor-grid-label {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Body */
+
+.markup-editor-body {
+  position: relative;
+  background: var(--bg-secondary);
+}
+
+.markup-editor-prose {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+
+.markup-editor-prose:focus {
+  outline: none;
+}
+
+/* Placeholder */
+.markup-editor-body[data-empty="true"]::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  color: var(--text-secondary);
+  opacity: 0.55;
+  font-size: 13px;
+  pointer-events: none;
+  font-style: italic;
+}
+
+/* Block resets */
+
+.markup-editor-prose p {
+  margin: 0 0 0.5em 0;
+}
+
+.markup-editor-prose p:last-child {
+  margin-bottom: 0;
+}
+
+.markup-editor-prose h1,
+.markup-editor-prose h2,
+.markup-editor-prose h3,
+.markup-editor-prose h4,
+.markup-editor-prose h5,
+.markup-editor-prose h6 {
+  margin: 0.6em 0 0.3em 0;
+  font-weight: 600;
+}
+
+.markup-editor-prose h1 { font-size: 1.35em; }
+.markup-editor-prose h2 { font-size: 1.2em; }
+.markup-editor-prose h3 { font-size: 1.08em; }
+.markup-editor-prose h4 { font-size: 1em; }
+.markup-editor-prose h5 { font-size: 0.92em; }
+.markup-editor-prose h6 { font-size: 0.85em; }
+
+.markup-editor-prose ul,
+.markup-editor-prose ol {
+  margin: 0.25em 0;
+  padding-left: 1.4em;
+}
+
+.markup-editor-prose li {
+  margin: 0.1em 0;
+}
+
+.markup-editor-prose blockquote {
+  margin: 0.4em 0;
+  padding: 0.2em 0.8em;
+  border-left: 3px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.markup-editor-prose code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.markup-editor-prose pre {
+  margin: 0.4em 0;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--bg-hover);
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.markup-editor-prose pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.markup-editor-prose a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.markup-editor-prose strong { font-weight: 600; }
+.markup-editor-prose em { font-style: italic; }
+.markup-editor-prose u { text-decoration: underline; }
+.markup-editor-prose s,
+.markup-editor-prose del { text-decoration: line-through; }
+
+.markup-editor-prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.8em 0;
+}
+
+/* Tables */
+
+.markup-editor-prose table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  width: auto;
+}
+
+.markup-editor-prose th,
+.markup-editor-prose td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  min-width: 40px;
+  vertical-align: top;
+}
+
+.markup-editor-prose th {
+  background: var(--bg-hover);
+  font-weight: 600;
+}
+
+.markup-editor-prose .align-left { text-align: left; }
+.markup-editor-prose .align-center { text-align: center; }
+.markup-editor-prose .align-right { text-align: right; }

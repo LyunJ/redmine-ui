@@ -201,3 +201,141 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.issue-edit-bool-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.issue-edit-bool-field label {
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.issue-edit-multi-check {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.issue-edit-check-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cf-warning-icon {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  color: var(--priority-high);
+  cursor: default;
+  margin-left: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.cf-warning-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: auto;
+  bottom: auto;
+  background: var(--bg-active);
+  color: var(--text-primary);
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 5px 8px;
+  border-radius: 4px;
+  white-space: normal;
+  max-width: 200px;
+  width: max-content;
+  pointer-events: none;
+  z-index: 9999;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: opacity 0.15s;
+  font-weight: 400;
+}
+
+.cf-warning-icon:hover .cf-warning-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.cf-unpin-btn {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  color: var(--accent);
+  opacity: 0.7;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.cf-unpin-btn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.cf-missing-banner {
+  background: color-mix(in srgb, var(--priority-urgent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--priority-urgent) 30%, transparent);
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cf-missing-banner-msg {
+  font-size: 12px;
+  color: var(--priority-urgent);
+  line-height: 1.4;
+}
+
+.cf-missing-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cf-missing-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cf-pin-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.12s;
+  flex-shrink: 0;
+}
+
+.cf-pin-action-btn:hover {
+  background: var(--accent-hover);
+}
